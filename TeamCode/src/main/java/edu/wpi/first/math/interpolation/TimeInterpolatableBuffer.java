@@ -81,7 +81,7 @@ public final class TimeInterpolatableBuffer<T> {
     private void cleanUp(double time) {
         while (!m_pastSnapshots.isEmpty()) {
             TreeMap.Entry entry = m_pastSnapshots.firstEntry();
-            if (time - (double)entry.getKey() >= m_historySize) {
+            if ((entry!=null) && (time - (double)entry.getKey() >= m_historySize)) {
                 m_pastSnapshots.remove(entry.getKey());
             } else {
                 return;
@@ -111,8 +111,8 @@ public final class TimeInterpolatableBuffer<T> {
             return Optional.of(nowEntry);
         }
 
-        TreeMap.Entry topBound = m_pastSnapshots.ceilingEntry(timeSeconds);
-        TreeMap.Entry bottomBound = m_pastSnapshots.floorEntry(timeSeconds);
+        TreeMap.Entry<Double, T> topBound = m_pastSnapshots.ceilingEntry(timeSeconds);
+        TreeMap.Entry<Double, T> bottomBound = m_pastSnapshots.floorEntry(timeSeconds);
 
     // Return null if neither sample exists, and the opposite bound if the other is null
     if (topBound == null && bottomBound == null) {

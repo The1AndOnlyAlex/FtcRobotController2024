@@ -1,6 +1,5 @@
 package commands;
 
-import com.arcrobotics.ftclib.command.RunCommand;
 import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.command.WaitCommand;
 //import com.arcrobotics.ftclib.controller.PIDController;
@@ -9,34 +8,34 @@ import com.arcrobotics.ftclib.command.WaitCommand;
 //import com.arcrobotics.ftclib.trajectory.TrapezoidProfile;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.json.JSONObject;
 
 import subsystems.IntakeSubsystem;
 //import subsystems.MecanumDriveSubsystem;
-import subsystems.WpiMecanumDriveSubsystem;
+import subsystems.MecanumDriveSubsystem;
 
 public class AutoSequentialCommand extends SequentialCommandGroup {
 
     public AutoSequentialCommand(
-            WpiMecanumDriveSubsystem driveSubsystem,
+            MecanumDriveSubsystem driveSubsystem,
             IntakeSubsystem gripSubsystem,
             double ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
-            Telemetry telemetry
+            Telemetry telemetry, JSONObject jsonData
     )
     {
         addCommands(
 
                 new commands.MecanumControllerCommand(
                         Config.Path.exampleTrajectoryWPI_A,
-                        driveSubsystem::getCurrentPose,
+                        driveSubsystem::getCurrentEstimatedPose,
                         driveSubsystem.getKinematics(),
-                        new edu.wpi.first.math.controller.PIDController(1,0,0),
-                        new edu.wpi.first.math.controller.PIDController(1,0,0),
+                        new edu.wpi.first.math.controller.PIDController(1,0,0.01),
+                        new edu.wpi.first.math.controller.PIDController(1,0,0.01),
                         new edu.wpi.first.math.controller.ProfiledPIDController(0.5,0,0,
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(0.5,0.5)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND, // DriveConstants.TRAJECTORY_MAX_VELOCITY,
-                        driveSubsystem::driveBySpeed,
-                        telemetry,
-                        driveSubsystem).whenFinished(driveSubsystem::stop)
+                        driveSubsystem::driveBySpeedEvent,
+                        driveSubsystem).whenFinished(driveSubsystem::stopDrive)
 
 
 
@@ -67,16 +66,15 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                 ,
                 new commands.MecanumControllerCommand(
                         Config.Path.exampleTrajectoryWPI_E,
-                        driveSubsystem::getCurrentPose,
+                        driveSubsystem::getCurrentEstimatedPose,
                         driveSubsystem.getKinematics(),
-                        new edu.wpi.first.math.controller.PIDController(0.01,0,0),
-                        new edu.wpi.first.math.controller.PIDController(0.01,0,0),
-                        new edu.wpi.first.math.controller.ProfiledPIDController(9.7,0.0,0.1,
-                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(9.7,9.7)),
+                        new edu.wpi.first.math.controller.PIDController(0.01,0,0.01),
+                        new edu.wpi.first.math.controller.PIDController(0.01,0,0.01),
+                        new edu.wpi.first.math.controller.ProfiledPIDController(5,0.0,0.03,
+                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(7,7)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
-                        driveSubsystem::driveBySpeed,
-                        telemetry,
-                        driveSubsystem ).whenFinished(driveSubsystem::stop)
+                        driveSubsystem::driveBySpeedEvent,
+                        driveSubsystem ).whenFinished(driveSubsystem::stopDrive)
                 ,
                 new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
 //                ,
@@ -84,15 +82,14 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                 ,
                 new commands.MecanumControllerCommand(
                         Config.Path.exampleTrajectoryWPI_F,
-                        driveSubsystem::getCurrentPose,
+                        driveSubsystem::getCurrentEstimatedPose,
                         driveSubsystem.getKinematics(),
-                        new edu.wpi.first.math.controller.PIDController(.1,0,0),
-                        new edu.wpi.first.math.controller.PIDController(.1,0,0),
-                        new edu.wpi.first.math.controller.ProfiledPIDController(10,0,0,
-                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(10,10)),
+                        new edu.wpi.first.math.controller.PIDController(.1,0,0.01),
+                        new edu.wpi.first.math.controller.PIDController(.1,0,0.01),
+                        new edu.wpi.first.math.controller.ProfiledPIDController(7,0,0.03,
+                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(7,7)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
-                        driveSubsystem::driveBySpeed,
-                        telemetry,
+                        driveSubsystem::driveBySpeedEvent,
                         driveSubsystem )//.whenFinished(driveSubsystem::stop)
 
 //                ,
@@ -111,16 +108,15 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                 ,
                 new commands.MecanumControllerCommand( // to fine tune for finish line
                         Config.Path.exampleTrajectoryWPI_G,
-                        driveSubsystem::getCurrentPose,
+                        driveSubsystem::getCurrentEstimatedPose,
                         driveSubsystem.getKinematics(),
-                        new edu.wpi.first.math.controller.PIDController(0.5,0,0),
-                        new edu.wpi.first.math.controller.PIDController(0.5,0,0),
+                        new edu.wpi.first.math.controller.PIDController(0.35,0,0),
+                        new edu.wpi.first.math.controller.PIDController(0.35,0,0),
                         new edu.wpi.first.math.controller.ProfiledPIDController(0.5,0,0,
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(0.5,0.5)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
-                        driveSubsystem::driveBySpeed,
-                        telemetry,
-                        driveSubsystem ).whenFinished(driveSubsystem::stop)
+                        driveSubsystem::driveBySpeedEvent,
+                        driveSubsystem ).whenFinished(driveSubsystem::stopDrive)
         );
     }
 }

@@ -25,6 +25,7 @@ import com.arcrobotics.ftclib.trajectory.TrajectoryGenerator;
 import com.arcrobotics.ftclib.trajectory.TrapezoidProfile;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
@@ -45,7 +46,7 @@ import commands.AutoSequentialCommand;
 import subsystems.FTCLibMecanumDriveSubsystem;
 import subsystems.IntakeSubsystem;
 
-
+@Disabled
 @Autonomous
 public class AutonomousFTCLibMecanumDrive extends CommandOpMode {
 

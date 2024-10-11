@@ -1,23 +1,15 @@
 package commands;
 
-import android.util.Size;
 import com.arcrobotics.ftclib.command.CommandBase;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import subsystems.WpiMecanumDriveSubsystem;
+import subsystems.MecanumDriveSubsystem;
 
 public class ApriltagCommand extends CommandBase {
-    private WpiMecanumDriveSubsystem subsystem;
+    private MecanumDriveSubsystem subsystem;
     /**
      * The variable to store our instance of the AprilTag processor.
      */
@@ -39,7 +31,7 @@ public class ApriltagCommand extends CommandBase {
 
     Telemetry telemetry;
 
-    public ApriltagCommand(WpiMecanumDriveSubsystem subsystem, AprilTagProcessor aprilTag, Telemetry telemetry) {
+    public ApriltagCommand(MecanumDriveSubsystem subsystem, AprilTagProcessor aprilTag, Telemetry telemetry) {
         this.subsystem = subsystem;
         this.aprilTag = aprilTag;
         this.telemetry = telemetry;
