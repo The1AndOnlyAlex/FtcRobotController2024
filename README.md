@@ -1,14 +1,12 @@
-## Welcome!
+# Welcome!
 
-The FtcRobotController2024 repository contains the Trjaectory Following Robot Controller for the FTC INTO THE DEEP (2024-2025) competition season.
+## About
+FtcRobotController2024 uses the same software architecture as FRC Programming, covering path planning with odometry and vision Pose Estimates for the FTC INTO THE DEEP (2024-2025) competition season.
+Powered with WPILib and combined elements from the FTC SDK and FTCLib, this repository has built-in Path Planning and Following, with Odometry and Apriltag Vision Pose Estmation brought specifically to FTC Autonomous Modes :)
 
 Link to YouTube Video: https://www.youtube.com/watch?v=7AXdvvbGaIo
 
 -------------------------------------------------
-
-## About
-
-This repository combines elements from the FTC SDK and FTCLib Libraries with the WPILib Library.
 
 ## Requirements
 To use this Android Studio project, you will need Android Studio 2021.2 (codename Chipmunk) or later.
