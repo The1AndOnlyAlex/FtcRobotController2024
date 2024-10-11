@@ -2,6 +2,7 @@
 
 The FtcRobotController2024 repository contains the Trjaectory Robot Controller for Path Planning for the FTC INTO THE DEEP (2024-2025) competition season.
 
+Link to YouTube Video: https://www.youtube.com/watch?v=7AXdvvbGaIo
 
 -------------------------------------------------
 
