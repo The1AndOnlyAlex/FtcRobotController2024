@@ -1,20 +1,23 @@
 package subsystems;
 
 import android.annotation.SuppressLint;
-import android.util.Size;
+
 import com.arcrobotics.ftclib.command.SubsystemBase;
+import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.hardware.GyroEx;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
 import java.util.List;
+
 import Config.ApriltagsFieldData;
 import Config.DriveConstants;
 import edu.wpi.first.math.ComputerVisionUtil;
@@ -35,24 +38,18 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.IMU;
+
 
 public class MecanumDriveSubsystem extends SubsystemBase
 {
-    private HardwareMap hardwareMap;
-    private Motor frontLeft, backLeft, frontRight,  backRight;
-    private GyroEx gyroEx;
-    private AprilTagProcessor webcamApriltag;
-    private Limelight3A limelightApriltag;
-    private MecanumDriveKinematics mecanumDriveKinematics;
+    Motor frontLeft, backLeft, frontRight,  backRight;
+    Motor.Encoder frontLeft_encoder, backLeft_encoder, frontRight_encoder, backRight_encoder;
+    GyroEx gyroEx;
+    AprilTagProcessor webcamApriltag;
+    Limelight3A limelightApriltag;
+    MecanumDriveKinematics mecanumDriveKinematics;
 
-    private MecanumDriveWheelSpeeds currentWheelSpeeds = new MecanumDriveWheelSpeeds();
-    private MecanumDriveWheelSpeeds targetWheelSpeeds = new MecanumDriveWheelSpeeds();
-    private MecanumDriveWheelPositions mecanumDriveWheelPositions = new MecanumDriveWheelPositions();
-    double ACHIEVABLE_MAX_DISTANCE_PER_SECOND;
+    MecanumDriveWheelSpeeds currentWheelSpeeds;
 
     private MecanumDrivePoseEstimator mecanumPoseEstimator;
     private Pose2d currentEstimatedPose;
@@ -67,18 +64,32 @@ public class MecanumDriveSubsystem extends SubsystemBase
     private boolean telemetryEnable = false;
 
     public MecanumDriveSubsystem(
-            HardwareMap hardwareMap,
+            Motor frontLeft,
+            Motor frontRight,
+            Motor backLeft,
+            Motor backRight,
+            GyroEx gyro,
+            AprilTagProcessor webcamApriltag,
+            Limelight3A limelightApriltag,
             Pose2d initialPose,
             Telemetry telemetry)
     {
-        this.hardwareMap = hardwareMap;
+        this.frontLeft = frontLeft;
+        this.backLeft = backLeft;
+        this.frontRight = frontRight;
+        this.backRight = backRight;
 
-        initDriveWheels();
-        initGyro();
-        initLimelightAprilTag();
-        initWebCamAprilTag();
+        this.frontLeft_encoder = frontLeft.encoder;
+        this.backLeft_encoder = backLeft.encoder;
+        this.frontRight_encoder = frontRight.encoder;
+        this.backRight_encoder = backRight.encoder;
+
+        gyroEx = gyro;
 
         mecanumDriveKinematics = DriveConstants.kinematicsWPI;
+
+        this.webcamApriltag = webcamApriltag;
+        this.limelightApriltag = limelightApriltag;
 
         currentEstimatedPose = initialPose;
 
@@ -96,230 +107,6 @@ public class MecanumDriveSubsystem extends SubsystemBase
         this.telemetry = telemetry;
     }
 
-    private void initDriveWheels()
-    {
-        frontLeft = new Motor(hardwareMap, "frontleft", Motor.GoBILDA.RPM_312);//RPM_435
-        frontRight = new Motor(hardwareMap, "frontright", Motor.GoBILDA.RPM_312);
-        backLeft = new Motor(hardwareMap, "backleft", Motor.GoBILDA.RPM_312);
-        backRight = new Motor(hardwareMap, "backright", Motor.GoBILDA.RPM_312);
-
-        frontLeft.setInverted(true);
-        backLeft.setInverted(true);
-
-//        frontLeft.setBuffer(1);
-//        frontRight.setBuffer(1);
-//        backLeft.setBuffer(1);
-//        backRight.setBuffer(1);
-        frontLeft.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backRight.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        frontLeft.stopAndResetEncoder();
-        frontRight.stopAndResetEncoder();
-        backLeft.stopAndResetEncoder();
-        backRight.stopAndResetEncoder();
-
-        frontLeft.setRunMode(Motor.RunMode.VelocityControl);
-        frontRight.setRunMode(Motor.RunMode.VelocityControl);
-        backLeft.setRunMode(Motor.RunMode.VelocityControl);
-        backRight.setRunMode(Motor.RunMode.VelocityControl);
-
-        frontLeft.setVeloCoefficients(1.33, 0, 0.007);
-        frontLeft.setFeedforwardCoefficients(0, 0.1);
-        frontRight.setVeloCoefficients(1.31, 0, 0.007);
-        frontRight.setFeedforwardCoefficients(0, 0.1);
-        backLeft.setVeloCoefficients(1.31, 0, 0.007);
-        backLeft.setFeedforwardCoefficients(0, 0.1);
-        backRight.setVeloCoefficients(1.33, 0, 0.007);
-        backRight.setFeedforwardCoefficients(0, 0.1);
-
-        frontLeft.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
-
-        frontLeft.setInverted(true);
-        backLeft.setInverted(true);
-
-        frontLeft.encoder.reset();
-        frontRight.encoder.reset();
-        backLeft.encoder.reset();
-        backRight.encoder.reset();
-        frontLeft.encoder.setDistancePerPulse(DriveConstants.DISTANCE_PER_PULSE);
-        frontRight.encoder.setDistancePerPulse(DriveConstants.DISTANCE_PER_PULSE);
-        backLeft.encoder.setDistancePerPulse(DriveConstants.DISTANCE_PER_PULSE);
-        backRight.encoder.setDistancePerPulse(DriveConstants.DISTANCE_PER_PULSE);
-
-        backRight.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRight.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontLeft.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeft.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        double ACHIEVABLE_MAX_TICKS_PER_SECOND = frontLeft.ACHIEVABLE_MAX_TICKS_PER_SECOND;
-        ACHIEVABLE_MAX_DISTANCE_PER_SECOND =
-                ACHIEVABLE_MAX_TICKS_PER_SECOND * DriveConstants.DISTANCE_PER_PULSE;
-        // about 1.567 m/s
-    }
-
-    private void initGyro()
-    {
-        gyroEx = new GyroEx() {
-            IMU imu = hardwareMap.get(IMU.class, "imu");
-            @Override
-            public void init() {
-                RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
-                        RevHubOrientationOnRobot.LogoFacingDirection.UP;
-                RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  =
-                        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-                RevHubOrientationOnRobot orientationOnRobot =
-                        new RevHubOrientationOnRobot(logoDirection, usbDirection);
-
-                imu.initialize(new IMU.Parameters(orientationOnRobot));
-                imu.resetYaw();
-            }
-
-            @Override
-            public double getHeading() {
-                return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-            }
-
-            @Override
-            public double getAbsoluteHeading() {
-                return 0;
-            }
-
-            @Override
-            public double[] getAngles()
-            {
-                return new double[] {
-                        imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES),
-                        imu.getRobotYawPitchRollAngles().getPitch(AngleUnit.DEGREES),
-                        imu.getRobotYawPitchRollAngles().getRoll(AngleUnit.DEGREES)
-                };
-            }
-
-            @Override
-            public com.arcrobotics.ftclib.geometry.Rotation2d getRotation2d() {
-                return new com.arcrobotics.ftclib.geometry.Rotation2d(getHeading());
-            }
-
-            @Override
-            public void reset() {
-                imu.resetYaw();
-            }
-
-            @Override
-            public void disable() {
-
-            }
-
-            @Override
-            public String getDeviceType() {
-                return "Internal IMU";
-            }
-        };
-
-        gyroEx.init();
-    }
-
-    private void initWebCamAprilTag()
-    {
-        //https://ftc-docs.firstinspires.org/en/latest/apriltag/vision_portal/visionportal_webcams/visionportal-webcams.html#arducam-global-shutter-120-fps
-        //https://ftc-docs.firstinspires.org/en/latest/programming_resources/index.html#apriltag-programming
-
-        AprilTagLibrary apriltagLib;
-        VisionPortal visionPortal;
-        WebcamName apriltagCam;
-
-        try {
-            apriltagCam = hardwareMap.get(WebcamName.class, "Webcam 1");
-        } catch (Exception e)
-        {
-            webcamApriltag= null;
-            return;
-        }
-
-        // Create the AprilTag processor.
-        AprilTagProcessor.Builder myAprilTagProcessorBuilder = new AprilTagProcessor.Builder();
-        if(USE_TESTING_TAGS)
-        {
-            AprilTagLibrary.Builder libBuilder = new AprilTagLibrary.Builder();
-            libBuilder.addTag(ApriltagsFieldData.tag_2);
-            libBuilder.addTag(ApriltagsFieldData.tag_42);
-            myAprilTagProcessorBuilder.setTagLibrary(libBuilder.build());
-        }
-        else {
-            myAprilTagProcessorBuilder.setTagLibrary
-                    (AprilTagGameDatabase.getCurrentGameTagLibrary());
-        }
-
-        // The following default settings are available to un-comment and edit as needed.
-        //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-        //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
-        // == CAMERA CALIBRATION ==
-        // If you do not manually specify calibration parameters, the SDK will attempt
-        // to load a predefined calibration for your camera.
-        //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
-        // ... these parameters are fx, fy, cx, cy.
-        myAprilTagProcessorBuilder.setDrawTagID(true);
-        myAprilTagProcessorBuilder.setDrawTagOutline(true);
-        myAprilTagProcessorBuilder.setDrawAxes(true);
-        myAprilTagProcessorBuilder.setDrawCubeProjection(true);
-        myAprilTagProcessorBuilder.setOutputUnits(DistanceUnit.METER, AngleUnit.DEGREES);
-        //myAprilTagProcessorBuilder.setLensIntrinsics(0,0,0,0);
-        // Adjust Image Decimation to trade-off detection-range for detection-rate.
-        // eg: Some typical detection data using a Logitech C920 WebCam
-        // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
-        // Decimation = 2 ..  Detect 2" Tag from 6  feet away at 22 Frames per second
-        // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
-        // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
-        // Note: Decimation can be changed on-the-fly to adapt during a match.
-        //aprilTag.setDecimation(3);
-
-        webcamApriltag = myAprilTagProcessorBuilder.build();
-
-        // Create the vision portal by using a builder.
-        VisionPortal.Builder builder = new VisionPortal.Builder();
-
-        builder.setCamera(apriltagCam);
-        builder.setCameraResolution(new Size(640,480)); //1280, 720));// fps 4
-        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
-        builder.enableLiveView(true);
-        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);//YUY2);
-        // Choose whether or not LiveView stops if no processors are enabled.
-        // If set "true", monitor shows solid orange screen if no processors enabled.
-        // If set "false", monitor shows camera view without annotations.
-        //builder.setAutoStopLiveView(false);
-        //builder.setLiveViewContainerId(0);
-
-        // Set and enable the processor.
-        builder.addProcessor(webcamApriltag);
-
-        // Build the Vision Portal, using the above settings.
-        visionPortal = builder.build();
-
-        // Disable or re-enable the aprilTag processor at any time.
-        visionPortal.setProcessorEnabled(webcamApriltag, true);
-    }
-
-    private void initLimelightAprilTag()
-    {
-        // https://docs.limelightvision.io/docs/docs-limelight/getting-started/FTC/pipelines
-        // https://docs.limelightvision.io/docs/docs-limelight/getting-started/performing-charuco-camera-calibration
-        
-        try{
-            limelightApriltag = hardwareMap.get(Limelight3A.class, "limelight");
-        } catch(Exception e){limelightApriltag= null;}
-
-        if(limelightApriltag != null){
-            limelightApriltag.pipelineSwitch(0);
-
-            limelightApriltag.start();
-        }
-    }
-
     @Override
     public void periodic()
     {
@@ -332,16 +119,16 @@ public class MecanumDriveSubsystem extends SubsystemBase
             // Get my wheel speeds; assume .getRate() has been
             // set up to return velocity of the encoder
             // in meters per second.
-            currentWheelSpeeds.frontLeftMetersPerSecond = frontLeft.encoder.getRate();
-            currentWheelSpeeds.frontRightMetersPerSecond = frontRight.encoder.getRate();
-            currentWheelSpeeds.rearLeftMetersPerSecond = backLeft.encoder.getRate();
-            currentWheelSpeeds.rearRightMetersPerSecond = backRight.encoder.getRate();
+            currentWheelSpeeds = new MecanumDriveWheelSpeeds
+            (
+                    frontLeft_encoder.getRate(), frontRight_encoder.getRate(),
+                    backLeft_encoder.getRate(), backRight_encoder.getRate()
+            );
 
+            MecanumDriveWheelPositions mecanumDriveWheelPositions = new MecanumDriveWheelPositions(
+                    frontLeft_encoder.getDistance(), frontRight_encoder.getDistance(),
+                    backLeft_encoder.getDistance(), backRight_encoder.getDistance());
 
-            mecanumDriveWheelPositions.frontLeftMeters = frontLeft.encoder.getDistance();
-            mecanumDriveWheelPositions.frontRightMeters = frontRight.encoder.getDistance();
-            mecanumDriveWheelPositions.rearLeftMeters = backLeft.encoder.getDistance();
-            mecanumDriveWheelPositions.rearRightMeters = backRight.encoder.getDistance();
 
             // Update the pose
             currentEstimatedPose = mecanumPoseEstimator.update(
@@ -349,10 +136,10 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
         }
 
-        DashServer.AddData("curFrontLeftE", frontLeft.encoder.getRate());
-        DashServer.AddData("curFrontRightE", frontRight.encoder.getRate());
-        DashServer.AddData("curBackLeftE", backLeft.encoder.getRate());
-        DashServer.AddData("curBackRightE", backRight.encoder.getRate());
+        DashServer.AddData("curFrontLeftE", frontLeft_encoder.getRate());
+        DashServer.AddData("curFrontRightE", frontRight_encoder.getRate());
+        DashServer.AddData("curBackLeftE", backLeft_encoder.getRate());
+        DashServer.AddData("curBackRightE", backRight_encoder.getRate());
 
         DashServer.AddData("curEstmPoseX", currentEstimatedPose.getX());
         DashServer.AddData("curEstmPoseY", currentEstimatedPose.getY());
@@ -382,7 +169,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
             telemetry.addData("Robot Estimator Position: ", currentEstimatedPose);
             //mecanumPoseEstimator.getEstimatedPosition());
             telemetry.addLine();
-            telemetry.addData("Asked Wheels Speed: ", targetWheelSpeeds);
+            telemetry.addData("Asked Wheels Speed: ", askedWheelSpeeds);
             telemetry.addLine();
             telemetry.addData("Measured Wheels Speed: ", currentWheelSpeeds);
             //telemetry.addData("Robot Speed: ",
@@ -393,27 +180,27 @@ public class MecanumDriveSubsystem extends SubsystemBase
         }
     }
 
-    public void driveBySpeedEvent(MecanumDriveWheelSpeeds speedsCommand)
+    MecanumDriveWheelSpeeds askedWheelSpeeds = new MecanumDriveWheelSpeeds();
+    public void driveBySpeedEvent(MecanumDriveWheelSpeeds mecanumDriveWheelSpeeds)
     {
-        targetWheelSpeeds.rearRightMetersPerSecond = speedsCommand.frontRightMetersPerSecond;
-        targetWheelSpeeds.rearLeftMetersPerSecond = speedsCommand.frontLeftMetersPerSecond;
-        targetWheelSpeeds.frontLeftMetersPerSecond = speedsCommand.frontLeftMetersPerSecond;
-        targetWheelSpeeds.frontRightMetersPerSecond = speedsCommand.frontRightMetersPerSecond;
-        targetWheelSpeeds.desaturate(DriveConstants.MAX_VELOCITY);
+        mecanumDriveWheelSpeeds.desaturate(DriveConstants.MAX_VELOCITY);
+        frontLeft.set( mecanumDriveWheelSpeeds.frontLeftMetersPerSecond);/// DriveConstants.MAX_VELOCITY);
+        frontRight.set( mecanumDriveWheelSpeeds.frontRightMetersPerSecond);/// DriveConstants.MAX_VELOCITY);
+        backLeft.set( mecanumDriveWheelSpeeds.rearLeftMetersPerSecond);/// DriveConstants.MAX_VELOCITY);
+        backRight.set( mecanumDriveWheelSpeeds.rearRightMetersPerSecond);/// DriveConstants.MAX_VELOCITY);
 
-        /// DriveConstants.MAX_VELOCITY);
-        frontLeft.set( targetWheelSpeeds.frontLeftMetersPerSecond);
-        frontRight.set( targetWheelSpeeds.frontRightMetersPerSecond);
-        backLeft.set( targetWheelSpeeds.rearLeftMetersPerSecond);
-        backRight.set( targetWheelSpeeds.rearRightMetersPerSecond);
+        askedWheelSpeeds.rearRightMetersPerSecond = mecanumDriveWheelSpeeds.rearRightMetersPerSecond;
+        askedWheelSpeeds.rearLeftMetersPerSecond = mecanumDriveWheelSpeeds.rearLeftMetersPerSecond;
+        askedWheelSpeeds.frontLeftMetersPerSecond = mecanumDriveWheelSpeeds.frontLeftMetersPerSecond;
+        askedWheelSpeeds.frontRightMetersPerSecond = mecanumDriveWheelSpeeds.frontRightMetersPerSecond;
 
-        DashServer.AddData("askFrontLeft", targetWheelSpeeds.frontLeftMetersPerSecond);
-        DashServer.AddData("askFrontRight", targetWheelSpeeds.frontRightMetersPerSecond);
-        DashServer.AddData("askBackLeft", targetWheelSpeeds.rearLeftMetersPerSecond);
-        DashServer.AddData("askBackRight", targetWheelSpeeds.rearRightMetersPerSecond);
+        DashServer.AddData("askFrontLeft", askedWheelSpeeds.rearRightMetersPerSecond);
+        DashServer.AddData("askFrontRight", askedWheelSpeeds.rearRightMetersPerSecond);
+        DashServer.AddData("askBackLeft", askedWheelSpeeds.rearRightMetersPerSecond);
+        DashServer.AddData("askBackRight", askedWheelSpeeds.rearRightMetersPerSecond);
     }
 
-    public void enableDrive()
+	public void enableDrive()
     {
         isSteopped = false;
     }
@@ -475,12 +262,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
                         double timeAcquisition = detection.frameAcquisitionNanoTime / 1e-9;
 
                         setStdDevsWebcamPose(ret);
-                        mecanumPoseEstimator.addVisionMeasurement( ret, timeAcquisition);
-
-                        DashServer.AddData("WebcamX", ret.getX());
-                        DashServer.AddData("WebcamY", ret.getY());
-                        DashServer.AddData("WebcamR", ret.getRotation().getDegrees());
-                        DashServer.AddData("WCtime", timeAcquisition);
+                        mecanumPoseEstimator.addVisionMeasurement( ret,
+                                timeAcquisition);
 
                         if(telemetryEnable) {
                             //                            telemetry.addLine(String.format("ComputerVisionUtil %6.3f %6.3f %6.1f  (xyr)", -1*cameraFieldPose.getX(), -1*cameraFieldPose.getY(),
@@ -531,8 +314,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
         LLResult result = limelightApriltag.getLatestResult();
         if (result != null) {
             // Access general information
-            org.firstinspires.ftc.robotcore.external.navigation.Pose3D botpose = 
-                result.getBotpose();
+            org.firstinspires.ftc.robotcore.external.navigation.Pose3D botpose =
+                    result.getBotpose();
             if(telemetryEnable) {
                 double captureLatency = result.getCaptureLatency();
                 double targetingLatency = result.getTargetingLatency();
@@ -541,7 +324,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 telemetry.addData("Parse Latency", parseLatency);
                 telemetry.addData("PythonOutput", java.util.Arrays.toString(result.getPythonOutput()));
             }
-            
+
             if (result.isValid()) {
                 if(telemetryEnable) {
                     telemetry.addData("tx", result.getTx());
@@ -585,14 +368,12 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 ret = new Pose2d(botpose.getPosition().x, botpose.getPosition().y,
                         new Rotation2d(botpose.getOrientation().getYaw()));
 
-                setStdDevsLimelightPose(ret);
-
-                mecanumPoseEstimator.addVisionMeasurement(ret,result.getControlHubTimeStamp()/1000.0);
-
                 DashServer.AddData("LimelightX", botpose.getPosition().x);
                 DashServer.AddData("LimelightY", botpose.getPosition().y);
                 DashServer.AddData("LimelightR", botpose.getOrientation().getYaw());
-                DashServer.AddData("LLtime", result.getControlHubTimeStamp()/1000.0);
+
+                setStdDevsLimelightPose(ret);
+                mecanumPoseEstimator.addVisionMeasurement(ret,result.getControlHubTimeStamp()/1000.0);
             }
         } else {
             if(telemetryEnable) {
@@ -674,15 +455,23 @@ public class MecanumDriveSubsystem extends SubsystemBase
     }
 
     private MecanumDriveWheelPositions getWheelDistance() {
-        return mecanumDriveWheelPositions;
+        return new MecanumDriveWheelPositions(
+                frontLeft_encoder.getDistance(),
+                backLeft_encoder.getDistance(),
+                frontRight_encoder.getDistance(),
+                backRight_encoder.getDistance());
     }
 
     public Rotation2d getGyroRotation2d() {
-        return new Rotation2d(gyroEx.getHeading());
+        return new Rotation2d(gyroEx.getRotation2d().getRadians());
     }
 
     public double getAchievableMaxSpeed()
     {
+        double ACHIEVABLE_MAX_TICKS_PER_SECOND = frontLeft.ACHIEVABLE_MAX_TICKS_PER_SECOND;
+        double ACHIEVABLE_MAX_DISTANCE_PER_SECOND =
+                ACHIEVABLE_MAX_TICKS_PER_SECOND * DriveConstants.DISTANCE_PER_PULSE;
+        // about 1.567 m/s
         return ACHIEVABLE_MAX_DISTANCE_PER_SECOND;
     }
 
