@@ -1,5 +1,3 @@
-//package org.firstinspires.ftc.teamcode;
-
 import android.util.Size;
 
 import com.arcrobotics.ftclib.command.CommandOpMode;
@@ -31,128 +29,31 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 
+import util.DataListener;
+import util.RobotDataServer;
+
 
 @Autonomous
 public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
 
     private Motor frontLeft, frontRight, backLeft, backRight;
+
     GyroEx gyro;
-    private MecanumDriveSubsystem mecanumDriveSubsystem;
-    private IntakeSubsystem intakeSubsystem;
 
     private AprilTagProcessor webcamAprilTag;
 
     private Limelight3A limelightApriltag;
 
+    private MecanumDriveSubsystem mecanumDriveSubsystem;
+    
+    private IntakeSubsystem intakeSubsystem;
+
     private static final boolean USE_DEBUG_FIELD_TAGS = true;
 
-    private void initWebCamAprilTag()
+    double ACHIEVABLE_MAX_DISTANCE_PER_SECOND;
+
+    private void initDriveWheels()
     {
-        AprilTagLibrary apriltagLib;
-        VisionPortal visionPortal;
-        WebcamName apriltagCam;
-
-        apriltagCam = hardwareMap.get(WebcamName.class, "Webcam 1");
-
-        // Create the AprilTag processor.
-        AprilTagProcessor.Builder myAprilTagProcessorBuilder = new AprilTagProcessor.Builder();
-        if(USE_DEBUG_FIELD_TAGS)
-        {
-            AprilTagLibrary.Builder libBuilder = new AprilTagLibrary.Builder();
-            libBuilder.addTag(ApriltagsFieldData.tag_2);
-            libBuilder.addTag(ApriltagsFieldData.tag_42);
-            myAprilTagProcessorBuilder.setTagLibrary(libBuilder.build());
-        }
-        else {
-            myAprilTagProcessorBuilder.setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary());//libBuilder.build());////
-        }
-        //aprilTag =  new AprilTagProcessor.Builder()
-
-            // The following default settings are available to un-comment and edit as needed.
-            //.setDrawAxes(false)
-            //.setDrawCubeProjection(false)
-            //.setDrawTagOutline(true)
-            //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-            //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
-            //.setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-
-            // == CAMERA CALIBRATION ==
-            // If you do not manually specify calibration parameters, the SDK will attempt
-            // to load a predefined calibration for your camera.
-            //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
-            // ... these parameters are fx, fy, cx, cy.
-        myAprilTagProcessorBuilder.setDrawTagID(true);
-        myAprilTagProcessorBuilder.setDrawTagOutline(true);
-        myAprilTagProcessorBuilder.setDrawAxes(true);
-        myAprilTagProcessorBuilder.setDrawCubeProjection(true);
-        myAprilTagProcessorBuilder.setOutputUnits(DistanceUnit.METER, AngleUnit.DEGREES);
-        //myAprilTagProcessorBuilder.setLensIntrinsics(0,0,0,0);
-        webcamAprilTag = myAprilTagProcessorBuilder.build();
-
-
-
-        // Adjust Image Decimation to trade-off detection-range for detection-rate.
-        // eg: Some typical detection data using a Logitech C920 WebCam
-        // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
-        // Decimation = 2 ..  Detect 2" Tag from 6  feet away at 22 Frames per second
-        // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
-        // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
-        // Note: Decimation can be changed on-the-fly to adapt during a match.
-        //aprilTag.setDecimation(3);
-
-        // Create the vision portal by using a builder.
-        VisionPortal.Builder builder = new VisionPortal.Builder();
-
-        builder.setCamera(apriltagCam);
-        builder.setCameraResolution(new Size(640,480)); //1280, 720));// fps 4
-        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
-        builder.enableLiveView(true);
-        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);//YUY2);
-        // Choose whether or not LiveView stops if no processors are enabled.
-        // If set "true", monitor shows solid orange screen if no processors enabled.
-        // If set "false", monitor shows camera view without annotations.
-        //builder.setAutoStopLiveView(false);
-        //builder.setLiveViewContainerId(0);
-
-        // Set and enable the processor.
-        builder.addProcessor(webcamAprilTag);
-
-        // Build the Vision Portal, using the above settings.
-        visionPortal = builder.build();
-
-        // Disable or re-enable the aprilTag processor at any time.
-        visionPortal.setProcessorEnabled(webcamAprilTag, true);
-
-    }   // end method initAprilTag()
-
-    private void initLimelight()
-    {
-        try{
-            limelightApriltag = hardwareMap.get(Limelight3A.class, "limelight");
-        } catch(Exception e){
-            limelightApriltag = null;}
-
-        if(limelightApriltag != null){
-            limelightApriltag.pipelineSwitch(0);
-
-            /*
-            * Starts polling for data.  If you neglect to call start(), getLatestResult() will return null.
-            */
-            limelightApriltag.start();
-        }
-    }
-
-    @Override
-    public void initialize()
-    {
-        //telemetry.setMsTransmissionInterval(11);
-
-        intakeSubsystem = new IntakeSubsystem(telemetry);
-
-        initLimelight();
-        initWebCamAprilTag();
-
         frontLeft = new Motor(hardwareMap, "frontleft", Motor.GoBILDA.RPM_312);//RPM_435
         frontRight = new Motor(hardwareMap, "frontright", Motor.GoBILDA.RPM_312);//RPM_312
         backLeft = new Motor(hardwareMap, "backleft", Motor.GoBILDA.RPM_312);
@@ -208,14 +109,17 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
 
 
         double ACHIEVABLE_MAX_TICKS_PER_SECOND = frontLeft.ACHIEVABLE_MAX_TICKS_PER_SECOND;
-        double ACHIEVABLE_MAX_DISTANCE_PER_SECOND = ACHIEVABLE_MAX_TICKS_PER_SECOND * DriveConstants.DISTANCE_PER_PULSE;
+        ACHIEVABLE_MAX_DISTANCE_PER_SECOND = ACHIEVABLE_MAX_TICKS_PER_SECOND * DriveConstants.DISTANCE_PER_PULSE;
         // about 1.567 m/s
 
         backRight.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         frontRight.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         frontLeft.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backLeft.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
 
+    private void initGyro()
+    {
         gyro = new GyroEx() {
             IMU imu = hardwareMap.get(IMU.class, "imu");
             @Override
@@ -270,7 +174,155 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         };
 
         gyro.init();
+    }
 
+    private void initWebCamAprilTag()
+    {
+        AprilTagLibrary apriltagLib;
+        VisionPortal visionPortal;
+        WebcamName apriltagCam;
+
+        try{
+            apriltagCam = hardwareMap.get(WebcamName.class, "Webcam 1");
+        } catch(Exception e) {
+            webcamAprilTag = null;
+            telemetry.addLine(" Lost Webcam 1 /n");
+            telemetry.update();
+            return;
+        }
+
+        // Create the AprilTag processor.
+        AprilTagProcessor.Builder myAprilTagProcessorBuilder = new AprilTagProcessor.Builder();
+        if(USE_DEBUG_FIELD_TAGS)
+        {
+            AprilTagLibrary.Builder libBuilder = new AprilTagLibrary.Builder();
+            libBuilder.addTag(ApriltagsFieldData.tag_2);
+            libBuilder.addTag(ApriltagsFieldData.tag_42);
+            myAprilTagProcessorBuilder.setTagLibrary(libBuilder.build());
+        }
+        else {
+            myAprilTagProcessorBuilder.setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary());//libBuilder.build());////
+        }
+
+        // The following default settings are available to un-comment and edit as needed.
+        //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+        //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+        
+        // == CAMERA CALIBRATION ==
+        // If you do not manually specify calibration parameters, the SDK will attempt
+        // to load a predefined calibration for your camera.
+        //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
+        // ... these parameters are fx, fy, cx, cy.
+        myAprilTagProcessorBuilder.setDrawTagID(true);
+        myAprilTagProcessorBuilder.setDrawTagOutline(true);
+        myAprilTagProcessorBuilder.setDrawAxes(true);
+        myAprilTagProcessorBuilder.setDrawCubeProjection(true);
+        myAprilTagProcessorBuilder.setOutputUnits(DistanceUnit.METER, AngleUnit.DEGREES);
+        webcamAprilTag = myAprilTagProcessorBuilder.build();
+
+        // Adjust Image Decimation to trade-off detection-range for detection-rate.
+        // eg: Some typical detection data using a Logitech C920 WebCam
+        // Decimation = 1 ..  Detect 2" Tag from 10 feet away at 10 Frames per second
+        // Decimation = 2 ..  Detect 2" Tag from 6  feet away at 22 Frames per second
+        // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second (default)
+        // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second (default)
+        // Note: Decimation can be changed on-the-fly to adapt during a match.
+        //aprilTag.setDecimation(3);
+
+        // Create the vision portal by using a builder.
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        builder.setCamera(apriltagCam);
+        builder.setCameraResolution(new Size(640,480)); //1280, 720));// fps 4
+        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
+        builder.enableLiveView(true);
+        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);//YUY2);
+        // Choose whether or not LiveView stops if no processors are enabled.
+        // If set "true", monitor shows solid orange screen if no processors enabled.
+        // If set "false", monitor shows camera view without annotations.
+        //builder.setAutoStopLiveView(false);
+        //builder.setLiveViewContainerId(0);
+
+        // Set and enable the processor.
+        builder.addProcessor(webcamAprilTag);
+
+        // Build the Vision Portal, using the above settings.
+        visionPortal = builder.build();
+
+        // Disable or re-enable the aprilTag processor at any time.
+        visionPortal.setProcessorEnabled(webcamAprilTag, true);
+
+    } 
+
+    private void initLimelight()
+    {
+        try{
+            limelightApriltag = hardwareMap.get(Limelight3A.class, "limelight");
+        } catch(Exception e){
+            limelightApriltag = null;
+            telemetry.addLine(" Lost Limelight /n");
+            telemetry.update();
+            return;
+        }
+
+        limelightApriltag.pipelineSwitch(0);
+
+        limelightApriltag.start();
+    }
+
+    private RobotDataServer dataServer;
+    private void initDashServer()
+    {
+        telemetry.addData("Status", "Starting server...");
+        telemetry.update();
+
+        // Initialize the server and the listener to handle incoming data
+        dataServer = new RobotDataServer(new DataListener() {
+                @Override
+                public void onDataReceived(String data) {
+                    telemetry.addData("Data Received", data);
+                    telemetry.update();
+                }
+
+                @Override
+                public void onClientConnected() {
+                    telemetry.addData("Status", "Client Connected.");
+                    telemetry.update();
+                }
+
+                @Override
+                public void onClientDisconnected() {
+                    telemetry.addData("Status", "Client Disconnected.");
+                    telemetry.update();
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    telemetry.addData("Error", errorMessage);
+                    telemetry.update();
+                }
+            });
+
+        // Start the server on port 12345
+        dataServer.startServer(12345);
+
+        telemetry.addData("Status", "Waiting for start...");
+        telemetry.update();
+    }
+
+    @Override
+    public void initialize()
+    {
+        //telemetry.setMsTransmissionInterval(11);
+
+        initDriveWheels();
+        initGyro();
+        initLimelight();
+        initWebCamAprilTag();        
+
+        intakeSubsystem = new IntakeSubsystem(telemetry);
+        
         mecanumDriveSubsystem = new MecanumDriveSubsystem(
                 frontLeft,
                 frontRight,
@@ -280,50 +332,67 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
                 webcamAprilTag,
                 limelightApriltag,
                 new edu.wpi.first.math.geometry.Pose2d(),
-                telemetry
+                telemetry, dataServer
         );
 
         mecanumDriveSubsystem.enableDrive();
 
-
-//        wpiMecanumDriveSubsystem.setDefaultCommand(
-//                new ApriltagCommand(wpiMecanumDriveSubsystem, aprilTag, telemetry));
+        //wpiMecanumDriveSubsystem.setDefaultCommand(
+        //ew ApriltagCommand(wpiMecanumDriveSubsystem, aprilTag, telemetry));
 
         // update telemetry every loop
         //schedule(new RunCommand(telemetry::update));
 
-            schedule(new Auto3PushCommand(
-                    mecanumDriveSubsystem,
-                    intakeSubsystem,
-                    ACHIEVABLE_MAX_DISTANCE_PER_SECOND));
+        schedule(new Auto3PushCommand(
+                mecanumDriveSubsystem,
+                intakeSubsystem,
+                ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
+                dataServer));
     }
 
 
     ////// DO NOT MODIFY THIS FUNCTION UNLESS YOU GET CONFIRMED!!!
     private int FrameCounter = 0;
+    double startTime = 0;
     @Override
     public void runOpMode() {
+        initDashServer();
         LynxModule controlHub  = hardwareMap.get(LynxModule.class, "Control Hub");
-        DashServer.Init();
-        boolean connected = false;
-        do {
-            connected = DashServer.Connect();
-            connected |= DashServer.AddData("time", FrameCounter);
-            sleep(1);
-        } while (!connected);
-
+        // DashServer.Init(telemetry);
+        // boolean connected = false;
+        // do {
+        //     connected = DashServer.Connect();
+        //     connected |= DashServer.AddData("time", FrameCounter);
+        //     sleep(1);
+        // } while (!connected);
         initialize();
         waitForStart();
+        startTime = (double) System.nanoTime() / 1E9;
         while (!isStopRequested() && opModeIsActive()) {
+            double currentTime = (double) System.nanoTime() / 1E9 - startTime;
+            // DashServer.AddData("OSTime", currentTime);
+            dataServer.AddData("OSTime", currentTime);
             run();
-            DashServer.AddData("time", FrameCounter++);
-            DashServer.AddData("busVoltage",
-                    controlHub .getInputVoltage(VoltageUnit.VOLTS));
-            DashServer.DashData();
-            sleep(10);
+            // DashServer.AddData("time", FrameCounter++);
+            dataServer.AddData("time", FrameCounter++);
+            // DashServer.AddData("busVoltage",
+            //         controlHub .getInputVoltage(VoltageUnit.VOLTS));
+            dataServer.AddData("bsVt",
+                             controlHub .getInputVoltage(VoltageUnit.VOLTS));
+            // DashServer.DashData();
+            dataServer.DashData();
+
+            sleep(5);
         }
         reset();
         if(limelightApriltag != null) limelightApriltag.stop();
-        DashServer.Close();
+        // DashServer.AddData("time", FrameCounter++);
+        dataServer.AddData("time", FrameCounter++);
+        // DashServer.AddData("OSTime", (double) System.nanoTime() / 1E9 - startTime);
+        dataServer.AddData("OSTime", (double) System.nanoTime() / 1E9 - startTime);
+        // DashServer.DashData();
+        dataServer.DashData();
+        // DashServer.Close();
+        dataServer.stopServer();
     }
 }

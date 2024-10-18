@@ -3,19 +3,22 @@ package commands;
 import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.command.WaitCommand;
 
+import com.arcrobotics.ftclib.command.InstantCommand;
 import subsystems.IntakeSubsystem;
 import subsystems.MecanumDriveSubsystem;
+import util.RobotDataServer;
 
 public class Auto3PushCommand extends SequentialCommandGroup 
 {
     public Auto3PushCommand(
             MecanumDriveSubsystem driveSubsystem,
             IntakeSubsystem gripSubsystem,
-            double achievableMaxSpeed
+            double achievableMaxSpeed,
+            RobotDataServer dataServer
     )
     {
         addCommands(
-
+                //new InstantCommand(driveSubsystem::enableDrive),
                 new commands.MecanumControllerCommand(
                         Config.Path.Trajectory_GotoA,
                         driveSubsystem::getCurrentEstimatedPose,
@@ -28,50 +31,26 @@ public class Auto3PushCommand extends SequentialCommandGroup
                                         0.5,0.5)),
                         achievableMaxSpeed,
                         driveSubsystem::driveBySpeedEvent,
+                        dataServer,
                         driveSubsystem).whenFinished(driveSubsystem::stopDrive)
 
+                 ,
+                 new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                // ,
-                // new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
-
-//                ,
-//                new commands.MecanumControllerCommand(
-//                        Config.Path.Trajectory_PushA,
-//                        driveSubsystem::getCurrentPose,
-//                        driveSubsystem.getKinematics(),
-//                        new edu.wpi.first.math.controller.PIDController(1,0,0.01),
-//                        new edu.wpi.first.math.controller.PIDController(1,0,0.01),
-//                        new edu.wpi.first.math.controller.ProfiledPIDController(0.5,0,0,
-//                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(
-//                                0.5,0.5)),
-//                        ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
-//                        driveSubsystem::driveBySpeed,
-//                        telemetry,
-//                        driveSubsystem ).whenFinished(driveSubsystem::stop)
+                ,
+                new commands.MecanumControllerCommand(
+                        Config.Path.Trajectory_PushA,
+                        driveSubsystem::getCurrentEstimatedPose,
+                        driveSubsystem.getKinematics(),
+                        new edu.wpi.first.math.controller.PIDController(1,0,0.01),
+                        new edu.wpi.first.math.controller.PIDController(1,0,0.01),
+                        new edu.wpi.first.math.controller.ProfiledPIDController(0.5,0,0,
+                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(
+                                0.5,0.5)),
+                        achievableMaxSpeed,
+                        driveSubsystem::driveBySpeedEvent,
+                        dataServer,
+                        driveSubsystem).whenFinished(driveSubsystem::stopDrive)
 
                 // ,
                 // new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
@@ -126,7 +105,7 @@ public class Auto3PushCommand extends SequentialCommandGroup
 //                        driveSubsystem::driveBySpeed,
 //                        telemetry,
 //                        driveSubsystem).whenFinished(driveSubsystem::stop)
-                        
+
                 // ,
                 // new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
 

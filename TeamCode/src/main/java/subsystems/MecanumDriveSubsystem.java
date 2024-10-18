@@ -33,7 +33,9 @@ import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import util.DashServer;
+//import util.DashServer;
+import util.RobotDataServer;
+
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
@@ -62,6 +64,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     private Telemetry telemetry;
     private boolean telemetryEnable = false;
+    private RobotDataServer dataServer;
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -72,7 +75,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
             AprilTagProcessor webcamApriltag,
             Limelight3A limelightApriltag,
             Pose2d initialPose,
-            Telemetry telemetry)
+            Telemetry telemetry,
+            RobotDataServer dataServer)
     {
         this.frontLeft = frontLeft;
         this.backLeft = backLeft;
@@ -105,6 +109,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
 
         this.telemetry = telemetry;
+        this.dataServer = dataServer;
     }
 
     @Override
@@ -113,7 +118,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
 //        isSteopped = true;
         if(isSteopped)
         {
-            telemetry.addData("STOPPED?? ", isSteopped);
+            if(telemetryEnable) {
+                telemetry.addData("STOPPED?? ", isSteopped);
+            }
         }
         else {
             // Get my wheel speeds; assume .getRate() has been
@@ -136,14 +143,14 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
         }
 
-        DashServer.AddData("curFrontLeftE", frontLeft_encoder.getRate());
-        DashServer.AddData("curFrontRightE", frontRight_encoder.getRate());
-        DashServer.AddData("curBackLeftE", backLeft_encoder.getRate());
-        DashServer.AddData("curBackRightE", backRight_encoder.getRate());
-
-        DashServer.AddData("curEstmPoseX", currentEstimatedPose.getX());
-        DashServer.AddData("curEstmPoseY", currentEstimatedPose.getY());
-        DashServer.AddData("curEstmPoseR", currentEstimatedPose.getRotation().getDegrees());
+//        dataServer.AddData("curFrontLeftE", frontLeft_encoder.getRate());
+//        dataServer.AddData("curFrontRightE", frontRight_encoder.getRate());
+//        dataServer.AddData("curBackLeftE", backLeft_encoder.getRate());
+//        dataServer.AddData("curBackRightE", backRight_encoder.getRate());
+//
+//        dataServer.AddData("curEstmPoseX", currentEstimatedPose.getX());
+//        dataServer.AddData("curEstmPoseY", currentEstimatedPose.getY());
+//        dataServer.AddData("curEstmPoseR", currentEstimatedPose.getRotation().getDegrees());
 
 
         //mecanumPoseEstimator.addVisionMeasurement();
@@ -194,10 +201,10 @@ public class MecanumDriveSubsystem extends SubsystemBase
         askedWheelSpeeds.frontLeftMetersPerSecond = mecanumDriveWheelSpeeds.frontLeftMetersPerSecond;
         askedWheelSpeeds.frontRightMetersPerSecond = mecanumDriveWheelSpeeds.frontRightMetersPerSecond;
 
-        DashServer.AddData("askFrontLeft", askedWheelSpeeds.rearRightMetersPerSecond);
-        DashServer.AddData("askFrontRight", askedWheelSpeeds.rearRightMetersPerSecond);
-        DashServer.AddData("askBackLeft", askedWheelSpeeds.rearRightMetersPerSecond);
-        DashServer.AddData("askBackRight", askedWheelSpeeds.rearRightMetersPerSecond);
+//        dataServer.AddData("askFrontLeft", askedWheelSpeeds.rearRightMetersPerSecond);
+//        dataServer.AddData("askFrontRight", askedWheelSpeeds.rearRightMetersPerSecond);
+//        dataServer.AddData("askBackLeft", askedWheelSpeeds.rearRightMetersPerSecond);
+//        dataServer.AddData("askBackRight", askedWheelSpeeds.rearRightMetersPerSecond);
     }
 
 	public void enableDrive()
@@ -207,7 +214,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
 	static boolean isSteopped = false;
     public void stopDrive()
     {
-        telemetry.addLine(" Request to STOP!! /n");
+        if(telemetryEnable) {
+            telemetry.addLine(" Request to STOP!! /n");
+        }
         telemetry.update();
         frontLeft.set( 0);
         frontRight.set( 0);
@@ -368,9 +377,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 ret = new Pose2d(botpose.getPosition().x, botpose.getPosition().y,
                         new Rotation2d(botpose.getOrientation().getYaw()));
 
-                DashServer.AddData("LimelightX", botpose.getPosition().x);
-                DashServer.AddData("LimelightY", botpose.getPosition().y);
-                DashServer.AddData("LimelightR", botpose.getOrientation().getYaw());
+//                dataServer.AddData("LimelightX", botpose.getPosition().x);
+//                dataServer.AddData("LimelightY", botpose.getPosition().y);
+//                dataServer.AddData("LimelightR", botpose.getOrientation().getYaw());
 
                 setStdDevsLimelightPose(ret);
                 mecanumPoseEstimator.addVisionMeasurement(ret,result.getControlHubTimeStamp()/1000.0);

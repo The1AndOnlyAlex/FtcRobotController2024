@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import subsystems.IntakeSubsystem;
 //import subsystems.MecanumDriveSubsystem;
 import subsystems.MecanumDriveSubsystem;
+import util.RobotDataServer;
 
 public class AutoSequentialCommand extends SequentialCommandGroup {
 
@@ -20,7 +21,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
             MecanumDriveSubsystem driveSubsystem,
             IntakeSubsystem gripSubsystem,
             double ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
-            Telemetry telemetry, JSONObject jsonData
+            Telemetry telemetry, RobotDataServer dataServer
     )
     {
         addCommands(
@@ -35,6 +36,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(0.5,0.5)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND, // DriveConstants.TRAJECTORY_MAX_VELOCITY,
                         driveSubsystem::driveBySpeedEvent,
+                        dataServer,
                         driveSubsystem).whenFinished(driveSubsystem::stopDrive)
 
 
@@ -74,6 +76,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(7,7)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
                         driveSubsystem::driveBySpeedEvent,
+                        dataServer,
                         driveSubsystem ).whenFinished(driveSubsystem::stopDrive)
                 ,
                 new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
@@ -90,6 +93,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(7,7)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
                         driveSubsystem::driveBySpeedEvent,
+                        dataServer,
                         driveSubsystem )//.whenFinished(driveSubsystem::stop)
 
 //                ,
@@ -116,6 +120,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(0.5,0.5)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
                         driveSubsystem::driveBySpeedEvent,
+                        dataServer,
                         driveSubsystem ).whenFinished(driveSubsystem::stopDrive)
         );
     }

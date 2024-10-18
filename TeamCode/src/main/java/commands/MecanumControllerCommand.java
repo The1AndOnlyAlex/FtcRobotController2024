@@ -21,6 +21,8 @@ import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.Timer;
 import util.DashServer;
+import util.RobotDataServer;
+
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -92,6 +94,8 @@ public class MecanumControllerCommand extends CommandBase {
           m_rearRightSpeedSetpoint = 0;
 //      MutableMeasure.zero(MetersPerSecond);
 
+  private RobotDataServer dataServer;
+
   /**
    * Constructs a new MecanumControllerCommand that when executed will follow the provided
    * trajectory. PID control and feedforward are handled internally. Outputs are scaled from -12 to
@@ -137,6 +141,7 @@ public class MecanumControllerCommand extends CommandBase {
       PIDController rearRightController,
       Supplier<MecanumDriveWheelSpeeds> currentWheelSpeeds,
       Consumer<MecanumDriveMotorVoltages> outputDriveVoltages,
+      RobotDataServer dataServer,
       Subsystem... requirements) {
     m_trajectory = requireNonNullParam(trajectory, "trajectory", "MecanumControllerCommand");
     m_pose = requireNonNullParam(pose, "pose", "MecanumControllerCommand");
@@ -179,6 +184,8 @@ public class MecanumControllerCommand extends CommandBase {
     m_outputWheelSpeeds = null;
 
     m_usePID = true;
+
+    this.dataServer = dataServer;
 
     addRequirements(requirements);
   }
@@ -282,6 +289,7 @@ public class MecanumControllerCommand extends CommandBase {
       Supplier<Rotation2d> desiredRotation,
       double maxWheelVelocityMetersPerSecond,
       Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
+      RobotDataServer dataServer,
       Subsystem... requirements) {
     m_trajectory = requireNonNullParam(trajectory, "trajectory", "MecanumControllerCommand");
     m_pose = requireNonNullParam(pose, "pose", "MecanumControllerCommand");
@@ -312,6 +320,8 @@ public class MecanumControllerCommand extends CommandBase {
     m_outputDriveVoltages = null;
 
     m_usePID = false;
+
+    this.dataServer = dataServer;
 
     addRequirements(requirements);
   }
@@ -348,7 +358,9 @@ public class MecanumControllerCommand extends CommandBase {
       ProfiledPIDController thetaController,
       double maxWheelVelocityMetersPerSecond,
       Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
-      Subsystem... requirements) {
+      RobotDataServer dataServer,
+      Subsystem... requirements
+      ) {
     this(
         trajectory,
         pose,
@@ -360,6 +372,7 @@ public class MecanumControllerCommand extends CommandBase {
             trajectory.getStates().get(trajectory.getStates().size() - 1).poseMeters.getRotation(),
         maxWheelVelocityMetersPerSecond,
         outputWheelSpeeds,
+            dataServer,
         requirements);
   }
 
@@ -390,7 +403,7 @@ public class MecanumControllerCommand extends CommandBase {
       m_timer.start();
     double curTime = m_timer.get();
 
-    DashServer.AddData("DriveTime", curTime);
+    //dataServer.AddData("DriveTime", curTime);
 
     Trajectory.State desiredState = m_trajectory.sample(curTime);
 
@@ -413,30 +426,30 @@ public class MecanumControllerCommand extends CommandBase {
 
     Pose2d currentPose = m_pose.get();
 
-    DashServer.AddData("currentPoseX",currentPose.getX());
-    DashServer.AddData("currentPoseY",currentPose.getY());
-    DashServer.AddData("currentPoseR",currentPose.getRotation().getDegrees());
+    dataServer.AddData("cuPsX",currentPose.getX());
+    dataServer.AddData("cuPsY",currentPose.getY());
+    dataServer.AddData("cuPsR",currentPose.getRotation().getDegrees());
 
-    DashServer.AddData("desiredPoseX",desiredState.poseMeters.getX());
-    DashServer.AddData("desiredPoseY",desiredState.poseMeters.getY());
-    DashServer.AddData("desiredPoseR",desiredState.poseMeters.getRotation().getDegrees());
+    dataServer.AddData("dsPsX",desiredState.poseMeters.getX());
+    dataServer.AddData("dsPsY",desiredState.poseMeters.getY());
+    dataServer.AddData("dsPsR",desiredState.poseMeters.getRotation().getDegrees());
 
-    DashServer.AddData("trajTimeSecond",desiredState.timeSeconds);
-    DashServer.AddData("trajVelocityMPS",desiredState.velocityMetersPerSecond);
-    DashServer.AddData("trajAccelerationMPSS",desiredState.accelerationMetersPerSecondSq);
-    DashServer.AddData("trajCurvatureRdPM",desiredState.curvatureRadPerMeter);
-
-    DashServer.AddData("frontLeftCalculate",frontLeftCalculate);
-    DashServer.AddData("frontRightCalculate",frontRightCalculate);
-    DashServer.AddData("backLeftCalculate",backLeftCalculate);
-    DashServer.AddData("backRightCalculate",backRightCalculate);
-
-    DashServer.AddData("maxWheelVelocityMPS",m_maxWheelVelocityMetersPerSecond);
-
-    DashServer.AddData("frontLeftSpeedSetpoint",m_frontLeftSpeedSetpoint);
-    DashServer.AddData("frontRightSpeedSetpoint",m_frontRightSpeedSetpoint);
-    DashServer.AddData("rearLeftSpeedSetpoint",m_rearLeftSpeedSetpoint);
-    DashServer.AddData("rearRightSpeedSetpoint",m_rearRightSpeedSetpoint);
+//    dataServer.AddData("trajTimeSecond",desiredState.timeSeconds);
+//    dataServer.AddData("trajVelocityMPS",desiredState.velocityMetersPerSecond);
+//    dataServer.AddData("trajAccelerationMPSS",desiredState.accelerationMetersPerSecondSq);
+//    dataServer.AddData("trajCurvatureRdPM",desiredState.curvatureRadPerMeter);
+//
+//    dataServer.AddData("frontLeftCalculate",frontLeftCalculate);
+//    dataServer.AddData("frontRightCalculate",frontRightCalculate);
+//    dataServer.AddData("backLeftCalculate",backLeftCalculate);
+//    dataServer.AddData("backRightCalculate",backRightCalculate);
+//
+//    dataServer.AddData("maxWheelVelocityMPS",m_maxWheelVelocityMetersPerSecond);
+//
+//    dataServer.AddData("frontLeftSpeedSetpoint",m_frontLeftSpeedSetpoint);
+//    dataServer.AddData("frontRightSpeedSetpoint",m_frontRightSpeedSetpoint);
+//    dataServer.AddData("rearLeftSpeedSetpoint",m_rearLeftSpeedSetpoint);
+//    dataServer.AddData("rearRightSpeedSetpoint",m_rearRightSpeedSetpoint);
 
     double frontLeftOutput;
     double rearLeftOutput;

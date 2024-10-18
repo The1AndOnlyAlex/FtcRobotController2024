@@ -150,7 +150,7 @@ public final class Path {
                 new edu.wpi.first.math.geometry.Translation2d(0.62, -0.62),
                 new edu.wpi.first.math.geometry.Translation2d(1.4, -0.62)
         ),
-        new edu.wpi.first.math.geometry.Pose2d(1.31, -1.07,
+        new edu.wpi.first.math.geometry.Pose2d(1.31, -1.06,
                 new edu.wpi.first.math.geometry.Rotation2d(0)),
 
         new TrajectoryConfig(
@@ -161,9 +161,9 @@ public final class Path {
 
     public static Trajectory Trajectory_PushA = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
         Arrays.asList(
-            new edu.wpi.first.math.geometry.Pose2d(1.4, -0.85,
+            new edu.wpi.first.math.geometry.Pose2d(1.30, -1.05,
                     new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
-            new edu.wpi.first.math.geometry.Pose2d(0, -0.85,
+            new edu.wpi.first.math.geometry.Pose2d(0, -1.05,
                     new edu.wpi.first.math.geometry.Rotation2d(0))
         ),
 
