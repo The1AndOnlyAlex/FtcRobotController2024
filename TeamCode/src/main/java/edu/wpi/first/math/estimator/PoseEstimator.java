@@ -336,7 +336,8 @@ public class PoseEstimator<T> {
    * @return The estimated pose of the robot in meters.
    */
   public Pose2d update(Rotation2d gyroAngle, T wheelPositions) {
-    return updateWithTime(System.currentTimeMillis()/1000 /*MathSharedStore.getTimestamp()*/, gyroAngle, wheelPositions);
+//    return updateWithTime((double)System.currentTimeMillis()/1000.0 /*MathSharedStore.getTimestamp()*/, gyroAngle, wheelPositions);
+    return updateWithTime((double) System.nanoTime() / 1E9 /*MathSharedStore.getTimestamp()*/, gyroAngle, wheelPositions);
   }
 
   /**

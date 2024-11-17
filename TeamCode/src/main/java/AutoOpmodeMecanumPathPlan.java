@@ -81,14 +81,15 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         backLeft.setRunMode(Motor.RunMode.VelocityControl);
         backRight.setRunMode(Motor.RunMode.VelocityControl);
 
-        frontLeft.setVeloCoefficients(1.33, 0, 0.007);
-        frontLeft.setFeedforwardCoefficients(0, 0.1);
-        frontRight.setVeloCoefficients(1.31, 0, 0.007);
-        frontRight.setFeedforwardCoefficients(0, 0.1);
-        backLeft.setVeloCoefficients(1.31, 0, 0.007);
-        backLeft.setFeedforwardCoefficients(0, 0.1);
-        backRight.setVeloCoefficients(1.33, 0, 0.007);
-        backRight.setFeedforwardCoefficients(0, 0.1);
+        frontLeft.setVeloCoefficients(1.2, 0, 0.01);
+        frontRight.setVeloCoefficients(1.2, 0, 0.01);
+        backLeft.setVeloCoefficients(1.2, 0, 0.01);
+        backRight.setVeloCoefficients(1.2, 0, 0.01);
+
+        frontLeft.setFeedforwardCoefficients(0.4, 0.6, 0.5);
+        frontRight.setFeedforwardCoefficients(0.4, 0.6, 0.5);
+        backLeft.setFeedforwardCoefficients(0.2, 0.6, 0.5);
+        backRight.setFeedforwardCoefficients(0.2, 0.6, 0.5);
 		
 	    frontLeft.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
@@ -252,8 +253,9 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
 
         // Disable or re-enable the aprilTag processor at any time.
         visionPortal.setProcessorEnabled(webcamAprilTag, true);
-
-    } 
+        //webcamStartTime = (double)System.nanoTime()/1E9;
+    }
+    //double webcamStartTime;
 
     private void initLimelight()
     {
@@ -271,14 +273,14 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         limelightApriltag.start();
     }
 
-    private RobotDataServer dataServer;
+    //private RobotDataServer dataServer;
     private void initDashServer()
     {
         telemetry.addData("Status", "Starting server...");
         telemetry.update();
 
         // Initialize the server and the listener to handle incoming data
-        dataServer = new RobotDataServer(new DataListener() {
+        RobotDataServer dataServer = new RobotDataServer(new DataListener() {
                 @Override
                 public void onDataReceived(String data) {
                     telemetry.addData("Data Received", data);
@@ -332,7 +334,7 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
                 webcamAprilTag,
                 limelightApriltag,
                 new edu.wpi.first.math.geometry.Pose2d(),
-                telemetry, dataServer
+                telemetry//, dataServer
         );
 
         mecanumDriveSubsystem.enableDrive();
@@ -346,53 +348,55 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         schedule(new Auto3PushCommand(
                 mecanumDriveSubsystem,
                 intakeSubsystem,
-                ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
-                dataServer));
+                ACHIEVABLE_MAX_DISTANCE_PER_SECOND//,
+                //dataServer
+        ));
     }
 
 
     ////// DO NOT MODIFY THIS FUNCTION UNLESS YOU GET CONFIRMED!!!
     private int FrameCounter = 0;
-    double startTime = 0;
+    //double startTime = 0;
+    static final double MIN_TASK_RUN_PERIOD = 100;
     @Override
     public void runOpMode() {
-        initDashServer();
+//        initDashServer();
         LynxModule controlHub  = hardwareMap.get(LynxModule.class, "Control Hub");
-        // DashServer.Init(telemetry);
-        // boolean connected = false;
-        // do {
-        //     connected = DashServer.Connect();
-        //     connected |= DashServer.AddData("time", FrameCounter);
-        //     sleep(1);
-        // } while (!connected);
+         DashServer.Init();//telemetry);
+         boolean connected = false;
+         do {
+             connected = DashServer.Connect();
+             connected |= DashServer.AddData("time", FrameCounter);
+             sleep(1);
+         } while (!connected);
+
         initialize();
         waitForStart();
-        startTime = (double) System.nanoTime() / 1E9;
+        double taskRunTime = 0;
+        //startTime = (double) System.nanoTime() / 1E9;
         while (!isStopRequested() && opModeIsActive()) {
-            double currentTime = (double) System.nanoTime() / 1E9 - startTime;
-            // DashServer.AddData("OSTime", currentTime);
-            dataServer.AddData("OSTime", currentTime);
+            //DashServer.AddData("Start", startTime);
+            //DashServer.AddData("wcStart", webcamStartTime);
+            DashServer.AddData("tskTime", taskRunTime);
+            double currentTime = (double) System.nanoTime() / 1E9;
+             DashServer.AddData("OSTime", currentTime);
             run();
-            // DashServer.AddData("time", FrameCounter++);
-            dataServer.AddData("time", FrameCounter++);
-            // DashServer.AddData("busVoltage",
-            //         controlHub .getInputVoltage(VoltageUnit.VOLTS));
-            dataServer.AddData("bsVt",
-                             controlHub .getInputVoltage(VoltageUnit.VOLTS));
-            // DashServer.DashData();
-            dataServer.DashData();
+             DashServer.AddData("time", FrameCounter++);
+             DashServer.AddData("busVoltage",
+                     controlHub .getInputVoltage(VoltageUnit.VOLTS));
+             DashServer.DashData();
 
-            sleep(5);
+            taskRunTime = (double) System.nanoTime() / 1E9 - currentTime;
+            long sleepTime = (long)(MIN_TASK_RUN_PERIOD - taskRunTime*1000);
+            if(sleepTime > 0)
+                sleep(sleepTime);
         }
         reset();
         if(limelightApriltag != null) limelightApriltag.stop();
-        // DashServer.AddData("time", FrameCounter++);
-        dataServer.AddData("time", FrameCounter++);
-        // DashServer.AddData("OSTime", (double) System.nanoTime() / 1E9 - startTime);
-        dataServer.AddData("OSTime", (double) System.nanoTime() / 1E9 - startTime);
-        // DashServer.DashData();
-        dataServer.DashData();
-        // DashServer.Close();
-        dataServer.stopServer();
+         DashServer.AddData("time", FrameCounter++);
+         DashServer.AddData("OSTime", (double) System.nanoTime() / 1E9);
+         DashServer.DashData();
+         DashServer.Close();
+//        dataServer.stopServer();
     }
 }

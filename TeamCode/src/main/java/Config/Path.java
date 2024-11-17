@@ -242,4 +242,94 @@ public final class Path {
                     .setKinematics(DriveConstants.kinematicsWPI)
     );
 
+    public static Trajectory Trajectory_GotoA1 = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
+            Arrays.asList(
+            new edu.wpi.first.math.geometry.Pose2d(0, 0,
+                    new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
+            new edu.wpi.first.math.geometry.Pose2d(0.62, -0.62,
+                    new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0)))
+            ),
+
+            new TrajectoryConfig(
+                    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+                    DriveConstants.MAX_ACCELERATION)
+                    .setKinematics(DriveConstants.kinematicsWPI)
+    );
+
+    public static Trajectory Trajectory_GotoA2 = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
+            Arrays.asList(
+                    new edu.wpi.first.math.geometry.Pose2d(0.62, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
+
+                    new edu.wpi.first.math.geometry.Pose2d(1.34, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0)))
+            ),
+
+            new TrajectoryConfig(
+                    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+                    DriveConstants.MAX_ACCELERATION)
+                    .setKinematics(DriveConstants.kinematicsWPI)
+    );
+    public static Trajectory Trajectory_GotoA3 = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
+            Arrays.asList(
+                    new edu.wpi.first.math.geometry.Pose2d(1.34, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
+                    new edu.wpi.first.math.geometry.Pose2d(1.33, -1.24, //1.31, -1.06
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0)))
+            ),
+
+            new edu.wpi.first.math.trajectory.TrajectoryConfig(
+                    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+                    DriveConstants.MAX_ACCELERATION,
+                    true)
+                    .setKinematics(DriveConstants.kinematicsWPI)
+    );
+
+
+    public static Trajectory Trajectory_GotoA4 = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
+            Arrays.asList(
+
+                    new edu.wpi.first.math.geometry.Pose2d(1.33, -1.24,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
+                    new edu.wpi.first.math.geometry.Pose2d(1.34, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0)))
+            ),
+
+            new edu.wpi.first.math.trajectory.TrajectoryConfig(
+                    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+                    DriveConstants.MAX_ACCELERATION
+                    )
+                    .setKinematics(DriveConstants.kinematicsWPI)
+    );
+
+    public static Trajectory Trajectory_GotoA5 = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
+            Arrays.asList(
+                    new edu.wpi.first.math.geometry.Pose2d(1.34, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
+
+                    new edu.wpi.first.math.geometry.Pose2d(0.62, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0)))
+            ),
+
+            new TrajectoryConfig(
+                    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+                    DriveConstants.MAX_ACCELERATION,
+                    true)
+                    .setKinematics(DriveConstants.kinematicsWPI)
+    );
+    public static Trajectory Trajectory_GotoA6 = edu.wpi.first.math.trajectory.TrajectoryGenerator.generateTrajectory(
+            Arrays.asList(
+                    new edu.wpi.first.math.geometry.Pose2d(0.62, -0.62,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0))),
+                    new edu.wpi.first.math.geometry.Pose2d(0,0,
+                            new edu.wpi.first.math.geometry.Rotation2d(Units.degreesToRadians(0)))
+            ),
+
+            new TrajectoryConfig(
+                    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+                    DriveConstants.MAX_ACCELERATION,
+                    true)
+                    .setKinematics(DriveConstants.kinematicsWPI)
+    );
+
 }

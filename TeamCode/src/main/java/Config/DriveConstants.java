@@ -19,8 +19,8 @@ public class DriveConstants {
     public static double DISTANCE_PER_PULSE = WHEEL_DIAMETER * Math.PI / TICKS_PER_REV;
     public static double TRACK_WIDTH = 0.4;//0.4572;
 
-    public static double MAX_VELOCITY = 1.5;
-    public static double MAX_ACCELERATION = 1.5;//0.5;//1.5;
+    public static double MAX_VELOCITY = 1.0;
+    public static double MAX_ACCELERATION = 1.0;//0.5;//1.5;
 
     // DiffDrive Ctrl Coeff
     public static double B = 2.0;

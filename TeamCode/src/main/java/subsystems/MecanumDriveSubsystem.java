@@ -33,7 +33,7 @@ import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-//import util.DashServer;
+import util.DashServer;
 import util.RobotDataServer;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -64,7 +64,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     private Telemetry telemetry;
     private boolean telemetryEnable = false;
-    private RobotDataServer dataServer;
+    //private RobotDataServer dataServer;
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -75,8 +75,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
             AprilTagProcessor webcamApriltag,
             Limelight3A limelightApriltag,
             Pose2d initialPose,
-            Telemetry telemetry,
-            RobotDataServer dataServer)
+            Telemetry telemetry//,
+            //RobotDataServer dataServer
+    )
     {
         this.frontLeft = frontLeft;
         this.backLeft = backLeft;
@@ -109,7 +110,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
 
         this.telemetry = telemetry;
-        this.dataServer = dataServer;
+        //this.dataServer = dataServer;
     }
 
     @Override
@@ -136,25 +137,26 @@ public class MecanumDriveSubsystem extends SubsystemBase
                     frontLeft_encoder.getDistance(), frontRight_encoder.getDistance(),
                     backLeft_encoder.getDistance(), backRight_encoder.getDistance());
 
-
             // Update the pose
-            currentEstimatedPose = mecanumPoseEstimator.update(
+            currentEstimatedPose = mecanumPoseEstimator.updateWithTime(
+                    (double) System.nanoTime() / 1E9,
                     getGyroRotation2d(), mecanumDriveWheelPositions);
 
         }
+        DashServer.AddData("dsEtmTime", (double) System.nanoTime() / 1E9);//(double)System.currentTimeMillis()/1000.0);//
 
-//        dataServer.AddData("curFrontLeftE", frontLeft_encoder.getRate());
-//        dataServer.AddData("curFrontRightE", frontRight_encoder.getRate());
-//        dataServer.AddData("curBackLeftE", backLeft_encoder.getRate());
-//        dataServer.AddData("curBackRightE", backRight_encoder.getRate());
-//
-//        dataServer.AddData("curEstmPoseX", currentEstimatedPose.getX());
-//        dataServer.AddData("curEstmPoseY", currentEstimatedPose.getY());
-//        dataServer.AddData("curEstmPoseR", currentEstimatedPose.getRotation().getDegrees());
+        DashServer.AddData("dsFLspd", frontLeft_encoder.getRate());
+        DashServer.AddData("dsFRspd", frontRight_encoder.getRate());
+        DashServer.AddData("dsBLspd", backLeft_encoder.getRate());
+        DashServer.AddData("dsBRspd", backRight_encoder.getRate());
 
+//        DashServer.AddData("dsPoseX", currentEstimatedPose.getX());
+//        DashServer.AddData("dsPoseY", currentEstimatedPose.getY());
+//        DashServer.AddData("dsPoseR", currentEstimatedPose.getRotation().getDegrees());
 
         //mecanumPoseEstimator.addVisionMeasurement();
-        if (visionWebcamPoseEnable && (webcamApriltag != null)) {
+        if (visionWebcamPoseEnable && (webcamApriltag != null))
+        {
             Pose2d botPose1 = visionWebcamUpdatePose();
             if (botPose1 != null) {
                 visionPose2dWebcam = botPose1;
@@ -174,15 +176,10 @@ public class MecanumDriveSubsystem extends SubsystemBase
             telemetry.addData("last Limelight Pose: ", visionPose2dLimelight);
             telemetry.addLine();
             telemetry.addData("Robot Estimator Position: ", currentEstimatedPose);
-            //mecanumPoseEstimator.getEstimatedPosition());
             telemetry.addLine();
             telemetry.addData("Asked Wheels Speed: ", askedWheelSpeeds);
             telemetry.addLine();
             telemetry.addData("Measured Wheels Speed: ", currentWheelSpeeds);
-            //telemetry.addData("Robot Speed: ",
-            // mecanumDriveKinematics.toChassisSpeeds(wheelSpeeds);
-            //telemetry.addData("Robot Rotation: ", gyroEx.());
-            //telemetryAprilTag();
             telemetry.update();
         }
     }
@@ -196,15 +193,15 @@ public class MecanumDriveSubsystem extends SubsystemBase
         backLeft.set( mecanumDriveWheelSpeeds.rearLeftMetersPerSecond);/// DriveConstants.MAX_VELOCITY);
         backRight.set( mecanumDriveWheelSpeeds.rearRightMetersPerSecond);/// DriveConstants.MAX_VELOCITY);
 
-        askedWheelSpeeds.rearRightMetersPerSecond = mecanumDriveWheelSpeeds.rearRightMetersPerSecond;
-        askedWheelSpeeds.rearLeftMetersPerSecond = mecanumDriveWheelSpeeds.rearLeftMetersPerSecond;
         askedWheelSpeeds.frontLeftMetersPerSecond = mecanumDriveWheelSpeeds.frontLeftMetersPerSecond;
         askedWheelSpeeds.frontRightMetersPerSecond = mecanumDriveWheelSpeeds.frontRightMetersPerSecond;
+        askedWheelSpeeds.rearLeftMetersPerSecond = mecanumDriveWheelSpeeds.rearLeftMetersPerSecond;
+        askedWheelSpeeds.rearRightMetersPerSecond = mecanumDriveWheelSpeeds.rearRightMetersPerSecond;
 
-//        dataServer.AddData("askFrontLeft", askedWheelSpeeds.rearRightMetersPerSecond);
-//        dataServer.AddData("askFrontRight", askedWheelSpeeds.rearRightMetersPerSecond);
-//        dataServer.AddData("askBackLeft", askedWheelSpeeds.rearRightMetersPerSecond);
-//        dataServer.AddData("askBackRight", askedWheelSpeeds.rearRightMetersPerSecond);
+        DashServer.AddData("dsTgtFLspd", askedWheelSpeeds.frontLeftMetersPerSecond);
+        DashServer.AddData("dsTgtFRspd", askedWheelSpeeds.frontRightMetersPerSecond);
+        DashServer.AddData("dsTgtBLspd", askedWheelSpeeds.rearLeftMetersPerSecond);
+        DashServer.AddData("dsTgtBRspd", askedWheelSpeeds.rearRightMetersPerSecond);
     }
 
 	public void enableDrive()
@@ -236,9 +233,11 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     private Pose2d visionWebcamUpdatePose()
     {
+        //powered USB hub is neeeded
+        //https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/configuring_uvc_camera/configuring-uvc-camera.html
         Pose2d ret = null;
 
-        List<AprilTagDetection> currentDetections = webcamApriltag.getDetections();
+        List<AprilTagDetection> currentDetections = webcamApriltag.getFreshDetections();
         //getFreshDetections();//.getDetections();
 
         if(telemetryEnable) {
@@ -250,7 +249,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 if (detection.metadata != null) {
                     if (detection.id == ApriltagsFieldData.tag_2.id)
                     {
-                        Pose3d tagFieldPose = new Pose3d(new Translation3d(0, 0, 0.07),
+                        Pose3d tagFieldPose = new Pose3d(new Translation3d(-0.61, 0, 0.07),
                                 new Rotation3d(0, 0, 0));
                         Transform3d tagToCamera = new Transform3d(
                                 new Translation3d(detection.ftcPose.y,
@@ -268,11 +267,15 @@ public class MecanumDriveSubsystem extends SubsystemBase
                                 -1 * cameraFieldPose.getY(),
                                 new Rotation2d(Units.degreesToRadians(-1 * detection.ftcPose.yaw)));
 
-                        double timeAcquisition = detection.frameAcquisitionNanoTime / 1e-9;
+                        double timeAcquisition = (double)detection.frameAcquisitionNanoTime / 1E9;
 
-                        setStdDevsWebcamPose(ret);
-                        mecanumPoseEstimator.addVisionMeasurement( ret,
-                                timeAcquisition);
+                        //setStdDevsWebcamPose(ret);
+                        mecanumPoseEstimator.addVisionMeasurement( ret, timeAcquisition);
+
+                        DashServer.AddData("WebcamX", ret.getX());
+                        DashServer.AddData("WebcamY", ret.getY());
+                        DashServer.AddData("WebcamR", ret.getRotation().getDegrees());
+                        DashServer.AddData("WebcamT", timeAcquisition);
 
                         if(telemetryEnable) {
                             //                            telemetry.addLine(String.format("ComputerVisionUtil %6.3f %6.3f %6.1f  (xyr)", -1*cameraFieldPose.getX(), -1*cameraFieldPose.getY(),
@@ -306,8 +309,15 @@ public class MecanumDriveSubsystem extends SubsystemBase
         return ret;
     }
 
+    private static final boolean USE_3D_MAGTAG2 = false;
     private Pose2d visionLimelightUpdatePose()
     {
+        double radians = 0;
+        if(USE_3D_MAGTAG2) {
+            radians = gyroEx.getHeading();
+            limelightApriltag.updateRobotOrientation(Math.toDegrees(radians));
+        }
+
         Pose2d ret = null;
 
         LLStatus status = limelightApriltag.getStatus();
@@ -323,8 +333,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
         LLResult result = limelightApriltag.getLatestResult();
         if (result != null) {
             // Access general information
-            org.firstinspires.ftc.robotcore.external.navigation.Pose3D botpose =
-                    result.getBotpose();
+
             if(telemetryEnable) {
                 double captureLatency = result.getCaptureLatency();
                 double targetingLatency = result.getTargetingLatency();
@@ -335,6 +344,12 @@ public class MecanumDriveSubsystem extends SubsystemBase
             }
 
             if (result.isValid()) {
+                org.firstinspires.ftc.robotcore.external.navigation.Pose3D botpose;
+                if(USE_3D_MAGTAG2)
+                    botpose = result.getBotpose_MT2();
+                else
+                    botpose = result.getBotpose();
+
                 if(telemetryEnable) {
                     telemetry.addData("tx", result.getTx());
                     telemetry.addData("txnc", result.getTxNC());
@@ -375,14 +390,16 @@ public class MecanumDriveSubsystem extends SubsystemBase
                 }
 
                 ret = new Pose2d(botpose.getPosition().x, botpose.getPosition().y,
-                        new Rotation2d(botpose.getOrientation().getYaw()));
+                        new Rotation2d(Math.toRadians(botpose.getOrientation().getYaw())));
+                //double timeAcquisition = (double) result.getControlHubTimeStamp()/1000.0;
+                double timeAcquisition = (double)(System.nanoTime() - (result.getStaleness()*1000000)) / 1E9;
+//                setStdDevsLimelightPose(ret);
+//                mecanumPoseEstimator.addVisionMeasurement(ret,timeAcquisition);
 
-//                dataServer.AddData("LimelightX", botpose.getPosition().x);
-//                dataServer.AddData("LimelightY", botpose.getPosition().y);
-//                dataServer.AddData("LimelightR", botpose.getOrientation().getYaw());
-
-                setStdDevsLimelightPose(ret);
-                mecanumPoseEstimator.addVisionMeasurement(ret,result.getControlHubTimeStamp()/1000.0);
+                DashServer.AddData("LlX", ret.getX());
+                DashServer.AddData("LlY", ret.getY());
+                DashServer.AddData("LlR", ret.getRotation().getDegrees());
+                DashServer.AddData("LlT", timeAcquisition);
             }
         } else {
             if(telemetryEnable) {

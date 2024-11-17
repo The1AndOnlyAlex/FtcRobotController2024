@@ -36,7 +36,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(0.5,0.5)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND, // DriveConstants.TRAJECTORY_MAX_VELOCITY,
                         driveSubsystem::driveBySpeedEvent,
-                        dataServer,
+                        //dataServer,
                         driveSubsystem).whenFinished(driveSubsystem::stopDrive)
 
 
@@ -76,7 +76,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(7,7)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
                         driveSubsystem::driveBySpeedEvent,
-                        dataServer,
+                        //dataServer,
                         driveSubsystem ).whenFinished(driveSubsystem::stopDrive)
                 ,
                 new WaitCommand(2000).whenFinished(driveSubsystem::enableDrive)
@@ -93,7 +93,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(7,7)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
                         driveSubsystem::driveBySpeedEvent,
-                        dataServer,
+                        //dataServer,
                         driveSubsystem )//.whenFinished(driveSubsystem::stop)
 
 //                ,
@@ -120,7 +120,7 @@ public class AutoSequentialCommand extends SequentialCommandGroup {
                                 new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(0.5,0.5)),
                         ACHIEVABLE_MAX_DISTANCE_PER_SECOND,//DriveConstants.TRAJECTORY_MAX_VELOCITY,//.MAX_VELOCITY, // need to be higher than trajectory??
                         driveSubsystem::driveBySpeedEvent,
-                        dataServer,
+                        //dataServer,
                         driveSubsystem ).whenFinished(driveSubsystem::stopDrive)
         );
     }

@@ -94,7 +94,7 @@ public class MecanumControllerCommand extends CommandBase {
           m_rearRightSpeedSetpoint = 0;
 //      MutableMeasure.zero(MetersPerSecond);
 
-  private RobotDataServer dataServer;
+  //private RobotDataServer dataServer;
 
   /**
    * Constructs a new MecanumControllerCommand that when executed will follow the provided
@@ -141,7 +141,7 @@ public class MecanumControllerCommand extends CommandBase {
       PIDController rearRightController,
       Supplier<MecanumDriveWheelSpeeds> currentWheelSpeeds,
       Consumer<MecanumDriveMotorVoltages> outputDriveVoltages,
-      RobotDataServer dataServer,
+      //RobotDataServer dataServer,
       Subsystem... requirements) {
     m_trajectory = requireNonNullParam(trajectory, "trajectory", "MecanumControllerCommand");
     m_pose = requireNonNullParam(pose, "pose", "MecanumControllerCommand");
@@ -185,7 +185,7 @@ public class MecanumControllerCommand extends CommandBase {
 
     m_usePID = true;
 
-    this.dataServer = dataServer;
+    //this.dataServer = dataServer;
 
     addRequirements(requirements);
   }
@@ -289,7 +289,7 @@ public class MecanumControllerCommand extends CommandBase {
       Supplier<Rotation2d> desiredRotation,
       double maxWheelVelocityMetersPerSecond,
       Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
-      RobotDataServer dataServer,
+      //RobotDataServer dataServer,
       Subsystem... requirements) {
     m_trajectory = requireNonNullParam(trajectory, "trajectory", "MecanumControllerCommand");
     m_pose = requireNonNullParam(pose, "pose", "MecanumControllerCommand");
@@ -321,7 +321,7 @@ public class MecanumControllerCommand extends CommandBase {
 
     m_usePID = false;
 
-    this.dataServer = dataServer;
+    //this.dataServer = dataServer;
 
     addRequirements(requirements);
   }
@@ -358,7 +358,7 @@ public class MecanumControllerCommand extends CommandBase {
       ProfiledPIDController thetaController,
       double maxWheelVelocityMetersPerSecond,
       Consumer<MecanumDriveWheelSpeeds> outputWheelSpeeds,
-      RobotDataServer dataServer,
+      //RobotDataServer dataServer,
       Subsystem... requirements
       ) {
     this(
@@ -372,7 +372,7 @@ public class MecanumControllerCommand extends CommandBase {
             trajectory.getStates().get(trajectory.getStates().size() - 1).poseMeters.getRotation(),
         maxWheelVelocityMetersPerSecond,
         outputWheelSpeeds,
-            dataServer,
+            //dataServer,
         requirements);
   }
 
@@ -393,17 +393,21 @@ public class MecanumControllerCommand extends CommandBase {
     m_prevFrontRightSpeedSetpoint = (prevSpeeds.frontRightMetersPerSecond);
     m_prevRearRightSpeedSetpoint = (prevSpeeds.rearRightMetersPerSecond);
 
-    m_timer = new Timer();
-    m_timer.reset();
+//    m_timer = new Timer();
+//    m_timer.reset();
   }
 
+  private long startTime = 0;
   @Override
   public void execute() {
-    if(m_timer.get() < 0.0001)
-      m_timer.start();
-    double curTime = m_timer.get();
+//    if(m_timer.get() < 0.0001)
+//      m_timer.start();
+//    double curTime = m_timer.get();
+    if(startTime < 1)
+      startTime = System.nanoTime();
 
-    //dataServer.AddData("DriveTime", curTime);
+    double curTime = (double) (System.nanoTime()-startTime) / 1E9;
+    DashServer.AddData("DriveTime", curTime);
 
     Trajectory.State desiredState = m_trajectory.sample(curTime);
 
@@ -426,30 +430,30 @@ public class MecanumControllerCommand extends CommandBase {
 
     Pose2d currentPose = m_pose.get();
 
-    dataServer.AddData("cuPsX",currentPose.getX());
-    dataServer.AddData("cuPsY",currentPose.getY());
-    dataServer.AddData("cuPsR",currentPose.getRotation().getDegrees());
+    DashServer.AddData("currentPoseX", m_pose.get().getX());
+    DashServer.AddData("currentPoseY", m_pose.get().getY());
+    DashServer.AddData("currentPoseR", m_pose.get().getRotation().getDegrees());
 
-    dataServer.AddData("dsPsX",desiredState.poseMeters.getX());
-    dataServer.AddData("dsPsY",desiredState.poseMeters.getY());
-    dataServer.AddData("dsPsR",desiredState.poseMeters.getRotation().getDegrees());
+    DashServer.AddData("desiredPoseX",desiredState.poseMeters.getX());
+    DashServer.AddData("desiredPoseY",desiredState.poseMeters.getY());
+    DashServer.AddData("desiredPoseR",desiredState.poseMeters.getRotation().getDegrees());
 
-//    dataServer.AddData("trajTimeSecond",desiredState.timeSeconds);
-//    dataServer.AddData("trajVelocityMPS",desiredState.velocityMetersPerSecond);
-//    dataServer.AddData("trajAccelerationMPSS",desiredState.accelerationMetersPerSecondSq);
-//    dataServer.AddData("trajCurvatureRdPM",desiredState.curvatureRadPerMeter);
-//
-//    dataServer.AddData("frontLeftCalculate",frontLeftCalculate);
-//    dataServer.AddData("frontRightCalculate",frontRightCalculate);
-//    dataServer.AddData("backLeftCalculate",backLeftCalculate);
-//    dataServer.AddData("backRightCalculate",backRightCalculate);
-//
-//    dataServer.AddData("maxWheelVelocityMPS",m_maxWheelVelocityMetersPerSecond);
-//
-//    dataServer.AddData("frontLeftSpeedSetpoint",m_frontLeftSpeedSetpoint);
-//    dataServer.AddData("frontRightSpeedSetpoint",m_frontRightSpeedSetpoint);
-//    dataServer.AddData("rearLeftSpeedSetpoint",m_rearLeftSpeedSetpoint);
-//    dataServer.AddData("rearRightSpeedSetpoint",m_rearRightSpeedSetpoint);
+    DashServer.AddData("trajTimeSecond",desiredState.timeSeconds);
+    DashServer.AddData("trajVelocityMPS",desiredState.velocityMetersPerSecond);
+    DashServer.AddData("trajAccelerationMPSS",desiredState.accelerationMetersPerSecondSq);
+    DashServer.AddData("trajCurvatureRdPM",desiredState.curvatureRadPerMeter);
+
+    DashServer.AddData("frontLeftCalculate",frontLeftCalculate);
+    DashServer.AddData("frontRightCalculate",frontRightCalculate);
+    DashServer.AddData("backLeftCalculate",backLeftCalculate);
+    DashServer.AddData("backRightCalculate",backRightCalculate);
+
+    DashServer.AddData("maxWheelVelocityMPS",m_maxWheelVelocityMetersPerSecond);
+
+    DashServer.AddData("frontLeftSpeedSetpoint",targetWheelSpeeds.frontLeftMetersPerSecond);
+    DashServer.AddData("frontRightSpeedSetpoint",targetWheelSpeeds.frontRightMetersPerSecond);
+    DashServer.AddData("rearLeftSpeedSetpoint",targetWheelSpeeds.rearLeftMetersPerSecond);
+    DashServer.AddData("rearRightSpeedSetpoint",targetWheelSpeeds.rearRightMetersPerSecond);
 
     double frontLeftOutput;
     double rearLeftOutput;
@@ -458,62 +462,63 @@ public class MecanumControllerCommand extends CommandBase {
 
     if (m_usePID) {
       final double frontLeftFeedforward =
-          m_feedforward.calculate(m_prevFrontLeftSpeedSetpoint, m_frontLeftSpeedSetpoint);//.in(Volts);
+              m_feedforward.calculate(m_prevFrontLeftSpeedSetpoint, m_frontLeftSpeedSetpoint);//.in(Volts);
 
       final double rearLeftFeedforward =
-          m_feedforward.calculate(m_prevRearLeftSpeedSetpoint, m_rearLeftSpeedSetpoint);//.in(Volts);
+              m_feedforward.calculate(m_prevRearLeftSpeedSetpoint, m_rearLeftSpeedSetpoint);//.in(Volts);
 
       final double frontRightFeedforward =
-          m_feedforward.calculate(m_prevFrontRightSpeedSetpoint, m_frontRightSpeedSetpoint);//.in(Volts);
+              m_feedforward.calculate(m_prevFrontRightSpeedSetpoint, m_frontRightSpeedSetpoint);//.in(Volts);
 
       final double rearRightFeedforward =
-          m_feedforward.calculate(m_prevRearRightSpeedSetpoint, m_rearRightSpeedSetpoint);//.in(Volts);
+              m_feedforward.calculate(m_prevRearRightSpeedSetpoint, m_rearRightSpeedSetpoint);//.in(Volts);
 
       frontLeftOutput =
-          frontLeftFeedforward
-              + m_frontLeftController.calculate(
-                  m_currentWheelSpeeds.get().frontLeftMetersPerSecond,
-                  m_frontLeftSpeedSetpoint/*.in(MetersPerSecond)*/);
+              frontLeftFeedforward
+                      + m_frontLeftController.calculate(
+                      m_currentWheelSpeeds.get().frontLeftMetersPerSecond,
+                      m_frontLeftSpeedSetpoint/*.in(MetersPerSecond)*/);
 
       rearLeftOutput =
-          rearLeftFeedforward
-              + m_rearLeftController.calculate(
-                  m_currentWheelSpeeds.get().rearLeftMetersPerSecond,
-                  m_rearLeftSpeedSetpoint/*.in(MetersPerSecond)*/);
+              rearLeftFeedforward
+                      + m_rearLeftController.calculate(
+                      m_currentWheelSpeeds.get().rearLeftMetersPerSecond,
+                      m_rearLeftSpeedSetpoint/*.in(MetersPerSecond)*/);
 
       frontRightOutput =
-          frontRightFeedforward
-              + m_frontRightController.calculate(
-                  m_currentWheelSpeeds.get().frontRightMetersPerSecond,
-                  m_frontRightSpeedSetpoint/*.in(MetersPerSecond)*/);
+              frontRightFeedforward
+                      + m_frontRightController.calculate(
+                      m_currentWheelSpeeds.get().frontRightMetersPerSecond,
+                      m_frontRightSpeedSetpoint/*.in(MetersPerSecond)*/);
 
       rearRightOutput =
-          rearRightFeedforward
-              + m_rearRightController.calculate(
-                  m_currentWheelSpeeds.get().rearRightMetersPerSecond,
-                  m_rearRightSpeedSetpoint/*.in(MetersPerSecond)*/);
+              rearRightFeedforward
+                      + m_rearRightController.calculate(
+                      m_currentWheelSpeeds.get().rearRightMetersPerSecond,
+                      m_rearRightSpeedSetpoint/*.in(MetersPerSecond)*/);
 
       m_outputDriveVoltages.accept(
-          new MecanumDriveMotorVoltages(
-              frontLeftOutput, frontRightOutput, rearLeftOutput, rearRightOutput));
+              new MecanumDriveMotorVoltages(
+                      frontLeftOutput, frontRightOutput, rearLeftOutput, rearRightOutput));
 
     } else {
       m_outputWheelSpeeds.accept(
-          new MecanumDriveWheelSpeeds(
-              m_frontLeftSpeedSetpoint/*.in(MetersPerSecond)*/,
-              m_frontRightSpeedSetpoint/*.in(MetersPerSecond)*/,
-              m_rearLeftSpeedSetpoint/*.in(MetersPerSecond)*/,
-              m_rearRightSpeedSetpoint/*.in(MetersPerSecond)*/));
+              new MecanumDriveWheelSpeeds(
+                      m_frontLeftSpeedSetpoint/*.in(MetersPerSecond)*/,
+                      m_frontRightSpeedSetpoint/*.in(MetersPerSecond)*/,
+                      m_rearLeftSpeedSetpoint/*.in(MetersPerSecond)*/,
+                      m_rearRightSpeedSetpoint/*.in(MetersPerSecond)*/));
     }
   }
 
   @Override
   public void end(boolean interrupted) {
-    m_timer.stop();
+    //m_timer.stop();
   }
 
   @Override
   public boolean isFinished() {
-    return m_timer.hasElapsed(m_trajectory.getTotalTimeSeconds());
+    //return m_timer.hasElapsed(m_trajectory.getTotalTimeSeconds());
+    return (double) (System.nanoTime()-startTime) / 1E9 > m_trajectory.getTotalTimeSeconds();
   }
 }
