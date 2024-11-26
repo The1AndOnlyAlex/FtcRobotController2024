@@ -29,10 +29,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 
-import util.DataListener;
-import util.RobotDataServer;
-
-
 @Autonomous
 public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
 
@@ -125,9 +121,12 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
             IMU imu = hardwareMap.get(IMU.class, "imu");
             @Override
             public void init() {
-                RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
-                RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-                RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+                RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
+                        RevHubOrientationOnRobot.LogoFacingDirection.UP;
+                RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  =
+                        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+                RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(
+                        logoDirection, usbDirection);
 
                 imu.initialize(new IMU.Parameters(orientationOnRobot));
                 imu.resetYaw();
@@ -255,7 +254,6 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         visionPortal.setProcessorEnabled(webcamAprilTag, true);
         //webcamStartTime = (double)System.nanoTime()/1E9;
     }
-    //double webcamStartTime;
 
     private void initLimelight()
     {
@@ -273,45 +271,6 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         limelightApriltag.start();
     }
 
-    //private RobotDataServer dataServer;
-    private void initDashServer()
-    {
-        telemetry.addData("Status", "Starting server...");
-        telemetry.update();
-
-        // Initialize the server and the listener to handle incoming data
-        RobotDataServer dataServer = new RobotDataServer(new DataListener() {
-                @Override
-                public void onDataReceived(String data) {
-                    telemetry.addData("Data Received", data);
-                    telemetry.update();
-                }
-
-                @Override
-                public void onClientConnected() {
-                    telemetry.addData("Status", "Client Connected.");
-                    telemetry.update();
-                }
-
-                @Override
-                public void onClientDisconnected() {
-                    telemetry.addData("Status", "Client Disconnected.");
-                    telemetry.update();
-                }
-
-                @Override
-                public void onError(String errorMessage) {
-                    telemetry.addData("Error", errorMessage);
-                    telemetry.update();
-                }
-            });
-
-        // Start the server on port 12345
-        dataServer.startServer(12345);
-
-        telemetry.addData("Status", "Waiting for start...");
-        telemetry.update();
-    }
 
     @Override
     public void initialize()
@@ -334,35 +293,31 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
                 webcamAprilTag,
                 limelightApriltag,
                 new edu.wpi.first.math.geometry.Pose2d(),
-                telemetry//, dataServer
+                telemetry
         );
 
         mecanumDriveSubsystem.enableDrive();
 
         //wpiMecanumDriveSubsystem.setDefaultCommand(
-        //ew ApriltagCommand(wpiMecanumDriveSubsystem, aprilTag, telemetry));
-
+        //new ApriltagCommand(wpiMecanumDriveSubsystem, aprilTag, telemetry));
         // update telemetry every loop
         //schedule(new RunCommand(telemetry::update));
 
         schedule(new Auto3PushCommand(
                 mecanumDriveSubsystem,
                 intakeSubsystem,
-                ACHIEVABLE_MAX_DISTANCE_PER_SECOND//,
-                //dataServer
+                ACHIEVABLE_MAX_DISTANCE_PER_SECOND
         ));
     }
 
 
     ////// DO NOT MODIFY THIS FUNCTION UNLESS YOU GET CONFIRMED!!!
     private int FrameCounter = 0;
-    //double startTime = 0;
     static final double MIN_TASK_RUN_PERIOD = 100;
     @Override
     public void runOpMode() {
-//        initDashServer();
         LynxModule controlHub  = hardwareMap.get(LynxModule.class, "Control Hub");
-         DashServer.Init();//telemetry);
+         DashServer.Init();
          boolean connected = false;
          do {
              connected = DashServer.Connect();
@@ -373,7 +328,7 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         initialize();
         waitForStart();
         double taskRunTime = 0;
-        //startTime = (double) System.nanoTime() / 1E9;
+
         while (!isStopRequested() && opModeIsActive()) {
             //DashServer.AddData("Start", startTime);
             //DashServer.AddData("wcStart", webcamStartTime);
@@ -393,10 +348,9 @@ public class AutoOpmodeMecanumPathPlan extends CommandOpMode {
         }
         reset();
         if(limelightApriltag != null) limelightApriltag.stop();
-         DashServer.AddData("time", FrameCounter++);
-         DashServer.AddData("OSTime", (double) System.nanoTime() / 1E9);
-         DashServer.DashData();
-         DashServer.Close();
-//        dataServer.stopServer();
+        DashServer.AddData("time", FrameCounter++);
+        DashServer.AddData("OSTime", (double) System.nanoTime() / 1E9);
+        DashServer.DashData();
+        DashServer.Close();
     }
 }

@@ -56,15 +56,17 @@ public class MecanumDriveSubsystem extends SubsystemBase
     private MecanumDrivePoseEstimator mecanumPoseEstimator;
     private Pose2d currentEstimatedPose;
 
-    boolean visionWebcamPoseEnable = false;
+
     Pose2d visionPose2dWebcam = new Pose2d();
-    boolean visionLimelightPoseEnable = false;
     Pose2d visionPose2dLimelight = new Pose2d();
     private static final boolean USE_TESTING_TAGS = true;
 
     private Telemetry telemetry;
+
     private boolean telemetryEnable = false;
-    //private RobotDataServer dataServer;
+
+    boolean visionLimelightPoseEnable = false;
+    boolean visionWebcamPoseEnable = false;
 
     public MecanumDriveSubsystem(
             Motor frontLeft,

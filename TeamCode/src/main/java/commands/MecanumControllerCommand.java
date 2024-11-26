@@ -112,7 +112,7 @@ public class MecanumControllerCommand extends CommandBase {
    * @param xController The Trajectory Tracker PID controller for the robot's x position.
    * @param yController The Trajectory Tracker PID controller for the robot's y position.
    * @param thetaController The Trajectory Tracker PID controller for angle for the robot.
-   * @param desiredRotation The angle that the robot should be facing. This is sampled at each time
+   * @param needNextSateRotation The angle that the robot should be facing. This is sampled at each time
    *     step.
    * @param maxWheelVelocityMetersPerSecond The maximum velocity of a drivetrain wheel.
    * @param frontLeftController The front left wheel velocity PID.
@@ -400,9 +400,6 @@ public class MecanumControllerCommand extends CommandBase {
   private long startTime = 0;
   @Override
   public void execute() {
-//    if(m_timer.get() < 0.0001)
-//      m_timer.start();
-//    double curTime = m_timer.get();
     if(startTime < 1)
       startTime = System.nanoTime();
 

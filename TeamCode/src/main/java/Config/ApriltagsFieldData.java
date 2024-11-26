@@ -33,29 +33,32 @@ public class ApriltagsFieldData {
     
 
     /*Add a tag to this tag library
-Parameters:
-id - the ID of the tag
-name - a text name for the tag
-tagsize - the physical size of the tag in the real world (measured black edge to black edge)
-fieldPosition - a vector describing the tag's 3d translation on the field
-distanceUnit - the units used for size and fieldPosition
-fieldOrientation - a quaternion describing the tag's orientation on the field */
+    Parameters:
+    id - the ID of the tag
+    name - a text name for the tag
+    tagsize - the physical size of the tag in the real world (measured black edge to black edge)
+    fieldPosition - a vector describing the tag's 3d translation on the field
+    distanceUnit - the units used for size and fieldPosition
+    fieldOrientation - a quaternion describing the tag's orientation on the field */
     public static AprilTagMetadata tag_42 = new AprilTagMetadata( // with timestamp
         42,//int id,
         "42",//String name,
         0.13,//double tagsize,
-        new org.firstinspires.ftc.robotcore.external.matrices.VectorF(0,0,0),// fieldPosition,
+        new org.firstinspires.ftc.robotcore.external.matrices.VectorF(
+                0,0,0),// fieldPosition,
         DistanceUnit.METER, //distanceUnit,
-        new org.firstinspires.ftc.robotcore.external.navigation.Quaternion(0,0,0,0,0)// fieldOrientation
-        );
-
-    public static AprilTagMetadata tag_2 = new AprilTagMetadata( // with timestamp
-            2,//int id,
-            "2",//String name,
-            0.189,//double tagsize,
-            new org.firstinspires.ftc.robotcore.external.matrices.VectorF(0,0,0.07f),// fieldPosition,
-            DistanceUnit.METER, //distanceUnit,
-            new org.firstinspires.ftc.robotcore.external.navigation.Quaternion(0,0,0,0,0)// fieldOrientation
+        new org.firstinspires.ftc.robotcore.external.navigation.Quaternion(
+                0,0,0,0,0)// fieldOrientation
     );
 
+    public static AprilTagMetadata tag_2 = new AprilTagMetadata( // with timestamp
+        2,//int id,
+        "2",//String name,
+        0.189,//double tagsize,
+        new org.firstinspires.ftc.robotcore.external.matrices.VectorF(
+                0,0,0.07f),// fieldPosition,
+        DistanceUnit.METER, //distanceUnit,
+        new org.firstinspires.ftc.robotcore.external.navigation.Quaternion(
+                0,0,0,0,0)// fieldOrientation
+    );
 }
