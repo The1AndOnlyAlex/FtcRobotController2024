@@ -6,7 +6,9 @@ FtcRobotController2024 uses the same software architecture as FRC Programming, c
 
 Powered with WPILib and combined elements from the FTC SDK and FTCLib, this repository has built-in Path Planning and Following, with Odometry and Apriltag Vision Pose Estmation brought specifically to FTC Autonomous Modes :)
 
-Link to YouTube Video: https://www.youtube.com/watch?v=7AXdvvbGaIo
+What is this Library for?: https://www.youtube.com/watch?v=7AXdvvbGaIo
+
+How to use this Library: https://www.youtube.com/watch?v=iVs15plThBw&list=PLO_DE8zY9eEX9_XWC-tGZZkB7uRuRNuA5&index=2
 
 ### Requirements
 
