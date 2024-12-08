@@ -855,4 +855,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
         return fieldRelative;
     }
 
+    public void resetHeading2Zero()
+    {
+        // so robot heading matchs the field forward direction, which is 0
+    }
 }

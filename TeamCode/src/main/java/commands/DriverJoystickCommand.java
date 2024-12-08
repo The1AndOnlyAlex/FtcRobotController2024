@@ -19,6 +19,8 @@ public class DriverJoystickCommand extends CommandBase {
     DoubleSupplier ySpdSupplier;
     DoubleSupplier rotationSpdSupplier;
     BooleanSupplier fieldOrientedSupplier;
+    BooleanSupplier robotOrientedSupplier;
+    BooleanSupplier resetCurrentHeading2Zero;
     BooleanSupplier towLeftSupplier;
     BooleanSupplier towRightSupplier;
     DoubleSupplier precisionLeftSupplier;
@@ -35,6 +37,8 @@ public class DriverJoystickCommand extends CommandBase {
             DoubleSupplier ySpdFunction,
             DoubleSupplier rotationSpdFunction,
             BooleanSupplier fieldOrientedFunction,
+            BooleanSupplier robotOrientedFunction,
+            BooleanSupplier resetCurrentHeading2Zero,
             BooleanSupplier towLeftSupplier,
             BooleanSupplier towRightSupplier,
             DoubleSupplier precisionLeftSupplier,
@@ -50,6 +54,8 @@ public class DriverJoystickCommand extends CommandBase {
         this.ySpdSupplier = ySpdFunction;
         this.rotationSpdSupplier = rotationSpdFunction;
         this.fieldOrientedSupplier = fieldOrientedFunction;
+        this.robotOrientedSupplier = robotOrientedFunction;
+        this.resetCurrentHeading2Zero = resetCurrentHeading2Zero;
         this.towLeftSupplier = towLeftSupplier;
         this.towRightSupplier = towRightSupplier;
         this.precisionLeftSupplier = precisionLeftSupplier;
@@ -60,6 +66,8 @@ public class DriverJoystickCommand extends CommandBase {
         this.turnToRightSupplier = turnToRightSupplier;
         this.currentHeadingSupplier = currentHeadingPI2NPI;
         m_drive = drive;
+
+        addRequirements(drive);
     }
 
     @Override
@@ -71,6 +79,10 @@ public class DriverJoystickCommand extends CommandBase {
     double targetAutoHeading = 0;
     @Override
     public void execute() {
+        if(resetCurrentHeading2Zero.getAsBoolean())
+        {
+            m_drive.resetHeading2Zero();
+        }
         // Retrieve real-time inputs from joystick and button states
         double xSpeed = xSpdSupplier.getAsDouble();
         double ySpeed = ySpdSupplier.getAsDouble();
@@ -101,13 +113,18 @@ public class DriverJoystickCommand extends CommandBase {
 
         // Retrieve current heading and control mode states
         double currentHeading = currentHeadingSupplier.getAsDouble();
-        boolean fieldOriented = fieldOrientedSupplier.getAsBoolean();
-        boolean towMode = towLeftSupplier.getAsBoolean() || towRightSupplier.getAsBoolean();
-        double precisionMode = Math.max(
-                precisionLeftSupplier.getAsDouble(), precisionRightSupplier.getAsDouble() );
 
-        // Adjust inputs for precision control if active
-        if (precisionMode > 0) {
+        boolean fieldOriented = false;
+        if( fieldOrientedSupplier.getAsBoolean())
+            fieldOriented = true;
+        if( robotOrientedSupplier.getAsBoolean())
+            fieldOriented = false;
+
+        boolean towMode = towLeftSupplier.getAsBoolean() || towRightSupplier.getAsBoolean();
+
+        double precisionMode = Math.abs(1 -  Math.max(
+                precisionLeftSupplier.getAsDouble(), precisionRightSupplier.getAsDouble() ));
+        if (precisionMode > 0.001) {
             xSpeed *= precisionMode;
             ySpeed *= precisionMode;
             rotationSpeed *= precisionMode;
@@ -115,9 +132,9 @@ public class DriverJoystickCommand extends CommandBase {
 
         // Implement tow mode adjustments
         if (towMode) {
-            xSpeed *= 0.01;  // Reduce speed for towing
-            ySpeed *= 0.01;
-            rotationSpeed *= 0.01;
+            xSpeed *= 0.001;  // Reduce speed for towing
+            ySpeed *= 0.001;
+            rotationSpeed *= 0.001;
         }
 
         // Handling combinations of directional inputs
