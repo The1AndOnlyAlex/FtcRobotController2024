@@ -17,16 +17,19 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
+import java.util.function.DoubleConsumer;
 
 import Config.ApriltagsFieldData;
 import Config.DriveConstants;
 import edu.wpi.first.math.ComputerVisionUtil;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.MecanumDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions;
@@ -81,6 +84,11 @@ public class MecanumDriveSubsystem extends SubsystemBase
             //RobotDataServer dataServer
     )
     {
+        m_frontLeftMotor = frontLeft::set;
+        m_rearLeftMotor = backLeft::set;
+        m_frontRightMotor = frontRight::set;
+        m_rearRightMotor = backRight::set;
+
         this.frontLeft = frontLeft;
         this.backLeft = backLeft;
         this.frontRight = frontRight;
@@ -511,4 +519,257 @@ public class MecanumDriveSubsystem extends SubsystemBase
 //        backLeft.set( mecanumDriveMotorVoltages.rearLeftVoltage);
 //        backRight.set( mecanumDriveMotorVoltages.rearRightVoltage);
 //    }
+
+
+    /**********************************************************************
+     * The code below are used for TeleOp Mode
+     ********************************************************************+*/
+    /** Default input deadband. */
+    public static final double kDefaultDeadband = 0.02;
+
+    /** Default maximum output. */
+    public static final double kDefaultMaxOutput = 1.0;
+
+    /** Input deadband. */
+    protected double m_deadband = kDefaultDeadband;
+
+    /** Maximum output. */
+    protected double m_maxOutput = kDefaultMaxOutput;
+
+    /** The location of a motor on the robot for the purpose of driving. */
+    public enum MotorType {
+        /** Front left motor. */
+        kFrontLeft(0),
+        /** Front right motor. */
+        kFrontRight(1),
+        /** Rear left motor. */
+        kRearLeft(2),
+        /** Reat right motor. */
+        kRearRight(3),
+        /** Left motor. */
+        kLeft(0),
+        /** Right motor. */
+        kRight(1),
+        /** Back motor. */
+        kBack(2);
+
+        /** MotorType value. */
+        public final int value;
+
+        MotorType(int value) {
+            this.value = value;
+        }
+    }
+
+    /**
+     * Drive method for Mecanum platform.
+     *
+     * <p>Angles are measured counterclockwise from the positive X axis. The robot's speed is
+     * independent of its angle or rotation rate.
+     *
+     * @param xSpeed The robot's speed along the X axis [-1.0..1.0]. Forward is positive.
+     * @param ySpeed The robot's speed along the Y axis [-1.0..1.0]. Left is positive.
+     * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0]. Counterclockwise is
+     *     positive.
+     */
+    public void driveCartesian(double xSpeed, double ySpeed, double zRotation) {
+        driveCartesian(xSpeed, ySpeed, zRotation, new Rotation2d());
+    }
+
+    private final DoubleConsumer m_frontLeftMotor;
+    private final DoubleConsumer m_rearLeftMotor;
+    private final DoubleConsumer m_frontRightMotor;
+    private final DoubleConsumer m_rearRightMotor;
+
+    // Used for Sendable property getters
+    private double m_frontLeftOutput;
+    private double m_rearLeftOutput;
+    private double m_frontRightOutput;
+    private double m_rearRightOutput;
+
+    /**
+     * Drive method for Mecanum platform.
+     *
+     * <p>Angles are measured counterclockwise from the positive X axis. The robot's speed is
+     * independent of its angle or rotation rate.
+     *
+     * @param xSpeed The robot's speed along the X axis [-1.0..1.0]. Forward is positive.
+     * @param ySpeed The robot's speed along the Y axis [-1.0..1.0]. Left is positive.
+     * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0]. Counterclockwise is
+     *     positive.
+     * @param gyroAngle The gyro heading around the Z axis. Use this to implement field-oriented
+     *     controls.
+     */
+    public void driveCartesian(double xSpeed, double ySpeed,
+                               double zRotation, Rotation2d gyroAngle) {
+
+        xSpeed = MathUtil.applyDeadband(xSpeed, m_deadband);
+        ySpeed = MathUtil.applyDeadband(ySpeed, m_deadband);
+
+        MecanumDriveWheelSpeeds speeds = driveCartesianIK(xSpeed, ySpeed, zRotation, gyroAngle);
+
+        m_frontLeftOutput = speeds.frontLeftMetersPerSecond * m_maxOutput;
+        m_rearLeftOutput = speeds.rearLeftMetersPerSecond * m_maxOutput;
+        m_frontRightOutput = speeds.frontRightMetersPerSecond * m_maxOutput;
+        m_rearRightOutput = speeds.rearRightMetersPerSecond * m_maxOutput;
+
+        m_frontLeftMotor.accept(m_frontLeftOutput);
+        m_frontRightMotor.accept(m_frontRightOutput);
+        m_rearLeftMotor.accept(m_rearLeftOutput);
+        m_rearRightMotor.accept(m_rearRightOutput);
+    }
+
+    /**
+     * Drive method for Mecanum platform.
+     *
+     * <p>Angles are measured counterclockwise from straight ahead. The speed at which the robot
+     * drives (translation) is independent of its angle or rotation rate.
+     *
+     * @param magnitude The robot's speed at a given angle [-1.0..1.0]. Forward is positive.
+     * @param angle The gyro heading around the Z axis at which the robot drives.
+     * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0]. Counterclockwise is
+     *     positive.
+     */
+    public void drivePolar(double magnitude, Rotation2d angle, double zRotation) {
+        driveCartesian(
+                magnitude * angle.getCos(), magnitude * angle.getSin(),
+                zRotation, new Rotation2d());
+    }
+
+    /**
+     * Cartesian inverse kinematics for Mecanum platform.
+     *
+     * <p>Angles are measured counterclockwise from the positive X axis. The robot's speed is
+     * independent of its angle or rotation rate.
+     *
+     * @param xSpeed The robot's speed along the X axis [-1.0..1.0]. Forward is positive.
+     * @param ySpeed The robot's speed along the Y axis [-1.0..1.0]. Left is positive.
+     * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0]. Counterclockwise is
+     *     positive.
+     * @return Wheel speeds [-1.0..1.0].
+     */
+    public static MecanumDriveWheelSpeeds driveCartesianIK(double xSpeed, double ySpeed, double zRotation) {
+        return driveCartesianIK(xSpeed, ySpeed, zRotation, new Rotation2d());
+    }
+
+    /**
+     * Cartesian inverse kinematics for Mecanum platform.
+     *
+     * <p>Angles are measured clockwise from the positive X axis. The robot's speed is independent of
+     * its angle or rotation rate.
+     *
+     * @param xSpeed The robot's speed along the X axis [-1.0..1.0]. Forward is positive.
+     * @param ySpeed The robot's speed along the Y axis [-1.0..1.0]. Left is positive.
+     * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0]. Counterclockwise is
+     *     positive.
+     * @param gyroAngle The gyro heading around the Z axis. Use this to implement field-oriented
+     *     controls.
+     * @return Wheel speeds [-1.0..1.0].
+     */
+    public static MecanumDriveWheelSpeeds driveCartesianIK(
+            double xSpeed, double ySpeed, double zRotation, Rotation2d gyroAngle) {
+        xSpeed = MathUtil.clamp(xSpeed, -1.0, 1.0);
+        ySpeed = MathUtil.clamp(ySpeed, -1.0, 1.0);
+
+        // Compensate for gyro angle.
+        Translation2d input = new Translation2d(xSpeed, ySpeed).rotateBy(gyroAngle.unaryMinus());
+
+        double[] wheelSpeeds = new double[4];
+        wheelSpeeds[MotorType.kFrontLeft.value] = input.getX() + input.getY() + zRotation;
+        wheelSpeeds[MotorType.kFrontRight.value] = input.getX() - input.getY() - zRotation;
+        wheelSpeeds[MotorType.kRearLeft.value] = input.getX() - input.getY() + zRotation;
+        wheelSpeeds[MotorType.kRearRight.value] = input.getX() + input.getY() - zRotation;
+
+        normalize(wheelSpeeds);
+
+        return new MecanumDriveWheelSpeeds(
+                wheelSpeeds[MotorType.kFrontLeft.value],
+                wheelSpeeds[MotorType.kFrontRight.value],
+                wheelSpeeds[MotorType.kRearLeft.value],
+                wheelSpeeds[MotorType.kRearRight.value]);
+    }
+
+    /**
+     * Sets the deadband applied to the drive inputs (e.g., joystick values).
+     *
+     * <p>The default value is {@value #kDefaultDeadband}. Inputs smaller than the deadband are set to
+     * 0.0 while inputs larger than the deadband are scaled from 0.0 to 1.0. See {@link
+     * edu.wpi.first.math.MathUtil#applyDeadband}.
+     *
+     * @param deadband The deadband to set.
+     */
+    public void setDeadband(double deadband) {
+        m_deadband = deadband;
+    }
+
+    /**
+     * Configure the scaling factor for using drive methods with motor controllers in a mode other
+     * than PercentVbus or to limit the maximum output.
+     *
+     * <p>The default value is {@value #kDefaultMaxOutput}.
+     *
+     * @param maxOutput Multiplied with the output percentage computed by the drive functions.
+     */
+    public void setMaxOutput(double maxOutput) {
+        m_maxOutput = maxOutput;
+    }
+
+
+    /**
+     * Normalize all wheel speeds if the magnitude of any wheel is greater than 1.0.
+     *
+     * @param wheelSpeeds List of wheel speeds to normalize.
+     */
+    protected static void normalize(double[] wheelSpeeds) {
+        double maxMagnitude = Math.abs(wheelSpeeds[0]);
+        for (int i = 1; i < wheelSpeeds.length; i++) {
+            double temp = Math.abs(wheelSpeeds[i]);
+            if (maxMagnitude < temp) {
+                maxMagnitude = temp;
+            }
+        }
+        if (maxMagnitude > 1.0) {
+            for (int i = 0; i < wheelSpeeds.length; i++) {
+                wheelSpeeds[i] = wheelSpeeds[i] / maxMagnitude;
+            }
+        }
+    }
+
+    /**
+     * Returns the currently-estimated pose of the robot.
+     *
+     * @return The pose.
+     */
+    public Pose2d getPose() {
+        return getCurrentEstimatedPose();
+    }
+
+    /**
+     * Resets the odometry to the specified pose.
+     *
+     * @param pose The pose to which to set the odometry.
+     */
+    public void resetOdometry(Pose2d pose) {
+        mecanumPoseEstimator.resetPosition(
+                getGyroRotation2d(),//m_gyro.getRotation2d(),
+                getWheelDistance(),//getCurrentWheelDistances(),
+                pose);
+    }
+    /**
+     * Drives the robot at given x, y and theta speeds. Speeds range from [-1, 1] and the linear
+     * speeds have no effect on the angular speed.
+     *
+     * @param xSpeed Speed of the robot in the x direction (forward/backwards).
+     * @param ySpeed Speed of the robot in the y direction (sideways).
+     * @param rot Angular rate of the robot.
+     * @param fieldRelative Whether the provided x and y speeds are relative to the field.
+     */
+    public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+        if (fieldRelative) {
+            driveCartesian(xSpeed, ySpeed, rot, getGyroRotation2d());
+        } else {
+            driveCartesian(xSpeed, ySpeed, rot);
+        }
+    }
+
 }
