@@ -77,7 +77,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     boolean visionLimelightPoseEnable = false;
     boolean visionWebcamPoseEnable = false;
-    private PIDController headingTurnPID = new PIDController(0.1, 0.0, 0.05);
+    private PIDController headingTurnPID = new PIDController(0.06, 0.0, 0.02);
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -808,13 +808,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
         }
     }
     private boolean fieldRelative = false;
-    public void setFiledRelative( )//boolean isFieldRela)
+    public void setFiledRelative(boolean isFieldRela )//boolean isFieldRela)
     {
-        fieldRelative = true;//isFieldRela;
-    }
-    public void setRobotRelative( )//boolean isFieldRela)
-    {
-        fieldRelative = false;//isFieldRela;
+        fieldRelative = isFieldRela;
     }
 
     public void adjustToHeading(double targetAutoHeading) {

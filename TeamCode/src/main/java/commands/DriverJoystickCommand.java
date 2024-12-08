@@ -119,6 +119,7 @@ public class DriverJoystickCommand extends CommandBase {
             fieldOriented = true;
         if( robotOrientedSupplier.getAsBoolean())
             fieldOriented = false;
+        m_drive.setFiledRelative(fieldOriented);
 
         boolean towMode = towLeftSupplier.getAsBoolean() || towRightSupplier.getAsBoolean();
 
