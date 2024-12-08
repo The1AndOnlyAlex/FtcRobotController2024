@@ -330,9 +330,11 @@ public class TeleOpMecanum extends CommandOpMode {
 
                         () -> driverOp.getButton(GamepadKeys.Button.A),
 
-                        () -> driverOp.getButton(GamepadKeys.Button.B),
+                        () -> driverOp.getButton(GamepadKeys.Button.LEFT_BUMPER),
+                        () -> driverOp.getButton(GamepadKeys.Button.RIGHT_BUMPER),
 
                         () -> driverOp.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER),
+                        () -> driverOp.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER),
 
                         () -> driverOp.getButton(GamepadKeys.Button.DPAD_UP),
                         () -> driverOp.getButton(GamepadKeys.Button.DPAD_DOWN),

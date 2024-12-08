@@ -6,31 +6,39 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 import subsystems.MecanumDriveSubsystem;
+import util.OldDriverFilter2;
+import util.filters.DeadbandFilter;
+import util.filters.FilterSeries;
+import util.filters.ScaleFilter;
 
 public class DriverJoystickCommand extends CommandBase {
 
     private final MecanumDriveSubsystem m_drive;
 
-    double xSpdFunction;
-    double ySpdFunction;
-    double rotationSpdFunction;
-    boolean fieldOrientedFunction;
-    boolean towSupplier;
-    double precisionSupplier;
-    boolean turnToForwardSupplier;
-    boolean turnToBackwardSupplier;
-    boolean turnToLeftSupplier;
-    boolean turnToRightSupplier;
+    DoubleSupplier xSpdSupplier;
+    DoubleSupplier ySpdSupplier;
+    DoubleSupplier rotationSpdSupplier;
+    BooleanSupplier fieldOrientedSupplier;
+    BooleanSupplier towLeftSupplier;
+    BooleanSupplier towRightSupplier;
+    DoubleSupplier precisionLeftSupplier;
+    DoubleSupplier precisionRightSupplier;
+    BooleanSupplier turnToForwardSupplier;
+    BooleanSupplier turnToBackwardSupplier;
+    BooleanSupplier turnToLeftSupplier;
+    BooleanSupplier turnToRightSupplier;
 
-    double currentHeadingPI2NPI;
+    DoubleSupplier currentHeadingSupplier;
 
     public DriverJoystickCommand(
             DoubleSupplier xSpdFunction,
             DoubleSupplier ySpdFunction,
             DoubleSupplier rotationSpdFunction,
             BooleanSupplier fieldOrientedFunction,
-            BooleanSupplier towSupplier,
-            DoubleSupplier precisionSupplier,
+            BooleanSupplier towLeftSupplier,
+            BooleanSupplier towRightSupplier,
+            DoubleSupplier precisionLeftSupplier,
+            DoubleSupplier precisionRightSupplier,
             BooleanSupplier turnToForwardSupplier,
             BooleanSupplier turnToBackwardSupplier,
             BooleanSupplier turnToLeftSupplier,
@@ -38,17 +46,19 @@ public class DriverJoystickCommand extends CommandBase {
             DoubleSupplier currentHeadingPI2NPI,
             MecanumDriveSubsystem drive)
     {
-        this.xSpdFunction = xSpdFunction.getAsDouble();
-        this.ySpdFunction = ySpdFunction.getAsDouble();
-        this.rotationSpdFunction = rotationSpdFunction.getAsDouble();
-        this.fieldOrientedFunction = fieldOrientedFunction.getAsBoolean();
-        this.towSupplier = towSupplier.getAsBoolean();
-        this.precisionSupplier = precisionSupplier.getAsDouble();
-        this.turnToForwardSupplier = turnToForwardSupplier.getAsBoolean();
-        this.turnToBackwardSupplier = turnToBackwardSupplier.getAsBoolean();
-        this.turnToLeftSupplier = turnToLeftSupplier.getAsBoolean();
-        this.turnToRightSupplier = turnToRightSupplier.getAsBoolean();
-        this.currentHeadingPI2NPI = currentHeadingPI2NPI.getAsDouble();
+        this.xSpdSupplier = xSpdFunction;
+        this.ySpdSupplier = ySpdFunction;
+        this.rotationSpdSupplier = rotationSpdFunction;
+        this.fieldOrientedSupplier = fieldOrientedFunction;
+        this.towLeftSupplier = towLeftSupplier;
+        this.towRightSupplier = towRightSupplier;
+        this.precisionLeftSupplier = precisionLeftSupplier;
+        this.precisionRightSupplier = precisionRightSupplier;
+        this.turnToForwardSupplier = turnToForwardSupplier;
+        this.turnToBackwardSupplier = turnToBackwardSupplier;
+        this.turnToLeftSupplier = turnToLeftSupplier;
+        this.turnToRightSupplier = turnToRightSupplier;
+        this.currentHeadingSupplier = currentHeadingPI2NPI;
         m_drive = drive;
     }
 
@@ -60,15 +70,104 @@ public class DriverJoystickCommand extends CommandBase {
     boolean doAutoHeading = false;
     double targetAutoHeading = 0;
     @Override
-    public void execute()
-    {
-        if(turnToBackwardSupplier || turnToForwardSupplier || turnToRightSupplier || turnToLeftSupplier)
-        {
-            doAutoHeading = true
+    public void execute() {
+        // Retrieve real-time inputs from joystick and button states
+        double xSpeed = xSpdSupplier.getAsDouble();
+        double ySpeed = ySpdSupplier.getAsDouble();
+        double rotationSpeed = rotationSpdSupplier.getAsDouble();
+
+        OldDriverFilter2 xFilter = new OldDriverFilter2(
+                0.05,//ControllerConstants.kDeadband,
+                0.05,//kMinimumMotorOutput,
+                5,//kTeleDriveMaxSpeedMetersPerSecond,
+                0.11765,//kDriveAlpha,
+                5,//kTeleMaxAcceleration,
+                -5);//kTeleMaxDeceleration);
+        OldDriverFilter2 yFilter = new OldDriverFilter2(
+                0.05,//ControllerConstants.kDeadband,
+                0.05,//kMinimumMotorOutput,
+                5,//kTeleDriveMaxSpeedMetersPerSecond,
+                0.11765,//kDriveAlpha,
+                5,//kTeleMaxAcceleration,
+                -5);//kTeleMaxDeceleration);
+        FilterSeries turningFilter = new FilterSeries(
+                new DeadbandFilter(0.1),//ControllerConstants.kRotationDeadband),
+                new ScaleFilter(12.566)//kTeleDriveMaxAngularSpeedRadiansPerSecond)
+        );
+
+        double filteredXSpeed = xFilter.calculate(xSpeed);
+        double filteredYSpeed = yFilter.calculate(ySpeed);
+        double filteredTurningSpeed;
+
+        // Retrieve current heading and control mode states
+        double currentHeading = currentHeadingSupplier.getAsDouble();
+        boolean fieldOriented = fieldOrientedSupplier.getAsBoolean();
+        boolean towMode = towLeftSupplier.getAsBoolean() || towRightSupplier.getAsBoolean();
+        double precisionMode = Math.max(
+                precisionLeftSupplier.getAsDouble(), precisionRightSupplier.getAsDouble() );
+
+        // Adjust inputs for precision control if active
+        if (precisionMode > 0) {
+            xSpeed *= precisionMode;
+            ySpeed *= precisionMode;
+            rotationSpeed *= precisionMode;
         }
-        m_drive.drive(xSpdFunction, ySpdFunction, rotationSpdFunction,
-                currentHeadingPI2NPI, fieldOrientedFunction);
+
+        // Implement tow mode adjustments
+        if (towMode) {
+            xSpeed *= 0.01;  // Reduce speed for towing
+            ySpeed *= 0.01;
+            rotationSpeed *= 0.01;
+        }
+
+        // Handling combinations of directional inputs
+        boolean forward = turnToForwardSupplier.getAsBoolean();
+        boolean backward = turnToBackwardSupplier.getAsBoolean();
+        boolean left = turnToLeftSupplier.getAsBoolean();
+        boolean right = turnToRightSupplier.getAsBoolean();
+
+        // Initialize variables to track state and compute the target heading
+        double targetHeading = 0;
+        int directionCount = 0;
+
+        // Calculate target heading based on button presses
+        if (forward) {
+            directionCount++;
+            targetHeading += 0; // Forward is 0 degrees
+        }
+        if (backward) {
+            directionCount++;
+            targetHeading += 180; // Backward is 180 degrees
+        }
+        if (left) {
+            directionCount++;
+            targetHeading += 90; // Left is 90 degrees
+        }
+        if (right) {
+            directionCount++;
+            targetHeading -= 90; // Right is -90 degrees
+        }
+
+        if (directionCount > 0) {
+            targetAutoHeading = targetHeading / directionCount; // Average if multiple buttons are pressed
+        }
+
+        // Normalize the target heading to be within -180 to 180 degrees
+        targetAutoHeading = ((targetAutoHeading + 180) % 360) - 180;
+
+        // Update auto-heading flag
+        doAutoHeading = (directionCount > 0);
+
+        // Apply automatic heading adjustments if required
+        if (doAutoHeading) {
+            m_drive.adjustToHeading(targetAutoHeading);
+            doAutoHeading = false; // Reset the flag after adjustment begins
+        } else {
+            // Continue with the regular driving command
+            m_drive.drive(xSpeed, ySpeed, rotationSpeed, currentHeading, fieldOriented);
+        }
     }
+
 
 //    @Override
 //    public void end(boolean interrupted) {

@@ -26,6 +26,7 @@ import Config.DriveConstants;
 import edu.wpi.first.math.ComputerVisionUtil;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.MecanumDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -76,6 +77,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     boolean visionLimelightPoseEnable = false;
     boolean visionWebcamPoseEnable = false;
+    private PIDController headingTurnPID = new PIDController(0.1, 0.0, 0.05);
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -127,6 +129,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
         this.telemetry = telemetry;
         //this.dataServer = dataServer;
+
+
+        headingTurnPID.enableContinuousInput(-180, 180);
     }
 
 //    com.arcrobotics.ftclib.geometry.Rotation2d previousHeading = new com.arcrobotics.ftclib.geometry.Rotation2d();
@@ -793,33 +798,10 @@ public class MecanumDriveSubsystem extends SubsystemBase
      * @param rot Angular rate of the robot.
      * @param fieldRelative Whether the provided x and y speeds are relative to the field.
      */
-    public void drive(double xSpeed, double ySpeed, double rot,/*, boolean fieldRelative*/
-                      double currentAngleDegree, boolean isFieldRe
+    public void drive(double xSpeed, double ySpeed, double rot,
+                      double currentAngleDegree, boolean fieldRelative
     ) {
-        OldDriverFilter2 xFilter = new OldDriverFilter2(
-                0.05,//ControllerConstants.kDeadband,
-                0.05,//kMinimumMotorOutput,
-                5,//kTeleDriveMaxSpeedMetersPerSecond,
-                0.11765,//kDriveAlpha,
-                5,//kTeleMaxAcceleration,
-                -5);//kTeleMaxDeceleration);
-        OldDriverFilter2 yFilter = new OldDriverFilter2(
-                0.05,//ControllerConstants.kDeadband,
-                0.05,//kMinimumMotorOutput,
-                5,//kTeleDriveMaxSpeedMetersPerSecond,
-                0.11765,//kDriveAlpha,
-                5,//kTeleMaxAcceleration,
-                -5);//kTeleMaxDeceleration);
-        FilterSeries turningFilter = new FilterSeries(
-                new DeadbandFilter(0.1),//ControllerConstants.kRotationDeadband),
-                new ScaleFilter(12.566)//kTeleDriveMaxAngularSpeedRadiansPerSecond)
-        );
-
-        double filteredXSpeed = xFilter.calculate(xSpeed);
-        double filteredYSpeed = yFilter.calculate(ySpeed);
-        double filteredTurningSpeed;
-
-        if (isFieldRe) {
+        if (fieldRelative) {
             driveCartesian(xSpeed, ySpeed, rot, currentAngleDegree);//getGyroRotation2d());
         } else {
             driveCartesian(xSpeed, ySpeed, rot);
@@ -835,15 +817,20 @@ public class MecanumDriveSubsystem extends SubsystemBase
         fieldRelative = false;//isFieldRela;
     }
 
-    public void turnDrive(double speed, double rot)
-    {
-        MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds();
-        wheelSpeeds.frontLeftMetersPerSecond = 0.3 + 0.3 + 0.1;
-        wheelSpeeds.frontRightMetersPerSecond = 0.3 - 0.3 - 0.1;
-        wheelSpeeds.rearLeftMetersPerSecond = 0.3 - 0.3 + 0.1;
-        wheelSpeeds.rearRightMetersPerSecond = 0.3 + 0.3 - 0.1;
+    public void adjustToHeading(double targetAutoHeading) {
+        headingTurnPID.setSetpoint(targetAutoHeading);
 
-        driveBySpeedEvent(wheelSpeeds);
+        // This method should be called repeatedly, such as in a periodic or execute method in your command
+        double currentHeading = getCurrentAngleDegree();  // This method must return the current heading normalized to -180 to 180 degrees
+
+        // Calculate the output from the PID controller, which automatically adjusts for the shortest path due to continuous input
+        double rotationSpeed = headingTurnPID.calculate(currentHeading);
+
+        // Optionally, you can limit the rotation speed here if needed
+        rotationSpeed = Math.max(-1, Math.min(1, rotationSpeed));
+
+        // Drive the robot with the calculated rotation speed; ensure no other drive commands interfere
+        drive(0, 0, rotationSpeed, currentHeading, false);  // Assuming drive method takes xSpeed, ySpeed, rotationSpeed, fieldOriented
     }
 
     public void stop()
