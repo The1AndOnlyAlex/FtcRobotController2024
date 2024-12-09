@@ -115,20 +115,23 @@ public class DriverJoystickCommand extends CommandBase {
         double currentHeading = currentHeadingSupplier.getAsDouble();
 
         boolean fieldOriented = false;
-        if( fieldOrientedSupplier.getAsBoolean())
+        if( fieldOrientedSupplier.getAsBoolean()) {
             fieldOriented = true;
-        if( robotOrientedSupplier.getAsBoolean())
+            m_drive.setFiledRelative(fieldOriented);
+        }
+        if( robotOrientedSupplier.getAsBoolean()) {
             fieldOriented = false;
-        m_drive.setFiledRelative(fieldOriented);
+            m_drive.setFiledRelative(fieldOriented);
+        }
 
         boolean towMode = towLeftSupplier.getAsBoolean() || towRightSupplier.getAsBoolean();
 
-        double precisionMode = Math.abs(1 -  Math.max(
-                precisionLeftSupplier.getAsDouble(), precisionRightSupplier.getAsDouble() ));
+        double precisionMode = Math.max(
+                precisionLeftSupplier.getAsDouble(), precisionRightSupplier.getAsDouble() );
         if (precisionMode > 0.001) {
-            xSpeed *= precisionMode;
-            ySpeed *= precisionMode;
-            rotationSpeed *= precisionMode;
+            precisionMode = Math.abs(1-precisionMode);
+            if(precisionMode < 0.4) precisionMode = 0.4;
+            m_drive.setMaxOutput(precisionMode);
         }
 
         // Implement tow mode adjustments

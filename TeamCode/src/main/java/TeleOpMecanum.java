@@ -24,6 +24,9 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
+
 import Config.ApriltagsFieldData;
 import Config.DriveConstants;
 import commands.DriverJoystickCommand;
@@ -312,17 +315,23 @@ public class TeleOpMecanum extends CommandOpMode {
         // sets the default command to the drive command so that it is always looking
         // at the value on the joysticks
         mecanumDriveSubsystem.setDefaultCommand(
-                // A split-stick arcade command, with forward/backward controlled by the left
-                // hand, and turning controlled by the right.
-//                new RunCommand(
-//                        () ->
-//                                mecanumDriveSubsystem.drive(
-//                                        -driverOp.getLeftY(),
-//                                        -driverOp.getRightX(),
-//                                        -driverOp.getLeftX(),
-//                                        mecanumDriveSubsystem::getCurrentAngleDegree,
-//                                        mecanumDriveSubsystem::getIsFieldRelative),
-//                        mecanumDriveSubsystem));
+
+//                DoubleSupplier xSpdFunction,
+//                DoubleSupplier ySpdFunction,
+//                DoubleSupplier rotationSpdFunction,
+//                BooleanSupplier fieldOrientedFunction,
+//                BooleanSupplier robotOrientedFunction,
+//                BooleanSupplier resetCurrentHeading2Zero,
+//                BooleanSupplier towLeftSupplier,
+//                BooleanSupplier towRightSupplier,
+//                DoubleSupplier precisionLeftSupplier,
+//                DoubleSupplier precisionRightSupplier,
+//                BooleanSupplier turnToForwardSupplier,
+//                BooleanSupplier turnToBackwardSupplier,
+//                BooleanSupplier turnToLeftSupplier,
+//                BooleanSupplier turnToRightSupplier,
+//                DoubleSupplier currentHeadingPI2NPI,
+//                MecanumDriveSubsystem drive
                 new DriverJoystickCommand(
                         () -> -driverOp.getLeftY(),
                         () -> -driverOp.getLeftX(),

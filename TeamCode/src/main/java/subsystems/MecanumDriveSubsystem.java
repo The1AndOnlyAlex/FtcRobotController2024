@@ -219,6 +219,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
             telemetry.addData("Measured Wheels Speed: ", currentWheelSpeeds);
             telemetry.addLine();
             telemetry.addData("Limited Heading: ", currentHeadingPi2NPi);
+            telemetry.addData("FieldOriented: ", fieldRelative);
             telemetry.update();
         }
     }
@@ -796,21 +797,30 @@ public class MecanumDriveSubsystem extends SubsystemBase
      * @param xSpeed Speed of the robot in the x direction (forward/backwards).
      * @param ySpeed Speed of the robot in the y direction (sideways).
      * @param rot Angular rate of the robot.
-     * @param fieldRelative Whether the provided x and y speeds are relative to the field.
+     * @param fieldRel Whether the provided x and y speeds are relative to the field.
      */
     public void drive(double xSpeed, double ySpeed, double rot,
-                      double currentAngleDegree, boolean fieldRelative
+                      double currentAngleDegree, boolean fieldRel
     ) {
-        if (fieldRelative) {
-            driveCartesian(xSpeed, ySpeed, rot, currentAngleDegree);//getGyroRotation2d());
+        if (fieldRel) {
+            driveCartesian(xSpeed, ySpeed, rot, angleOfRobotAndField);//getGyroRotation2d());
         } else {
             driveCartesian(xSpeed, ySpeed, rot);
         }
     }
     private boolean fieldRelative = false;
-    public void setFiledRelative(boolean isFieldRela )//boolean isFieldRela)
+    private double angleOfRobotAndField = 0;
+    public void setFiledRelative(boolean isFieldRela )
     {
         fieldRelative = isFieldRela;
+        if(fieldRelative)
+        {
+            angleOfRobotAndField = getCurrentAngleDegree();
+        }
+        else
+        {
+            angleOfRobotAndField = 0;
+        }
     }
 
     public void adjustToHeading(double targetAutoHeading) {
@@ -854,5 +864,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
     public void resetHeading2Zero()
     {
         // so robot heading matchs the field forward direction, which is 0
+        angleOfRobotAndField = 0;
+        gyroEx.reset();
+        currentHeadingPi2NPi = 0;
     }
 }
