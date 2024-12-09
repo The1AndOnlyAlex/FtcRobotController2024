@@ -77,7 +77,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     boolean visionLimelightPoseEnable = false;
     boolean visionWebcamPoseEnable = false;
-    private PIDController headingTurnPID = new PIDController(0.06, 0.0, 0.02);
+    private PIDController headingTurnPID = new PIDController(0.02, 0.0, 0.005);
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -797,20 +797,25 @@ public class MecanumDriveSubsystem extends SubsystemBase
      * @param xSpeed Speed of the robot in the x direction (forward/backwards).
      * @param ySpeed Speed of the robot in the y direction (sideways).
      * @param rot Angular rate of the robot.
-     * @param fieldRel Whether the provided x and y speeds are relative to the field.
      */
     public void drive(double xSpeed, double ySpeed, double rot,
-                      double currentAngleDegree, boolean fieldRel
+                      boolean isRobotTurnOnly
     ) {
-        if (fieldRel) {
-            driveCartesian(xSpeed, ySpeed, rot, angleOfRobotAndField);//getGyroRotation2d());
-        } else {
+        if(isRobotTurnOnly)
+        {
+            driveCartesian(xSpeed, ySpeed, rot);
+        }
+        else if (fieldRelative)
+        {
+            driveCartesian(xSpeed, ySpeed, rot, angleOfRobotAndField);
+        } else
+        {
             driveCartesian(xSpeed, ySpeed, rot);
         }
     }
     private boolean fieldRelative = false;
     private double angleOfRobotAndField = 0;
-    public void setFiledRelative(boolean isFieldRela )
+    public void setFieledRelative(boolean isFieldRela )
     {
         fieldRelative = isFieldRela;
         if(fieldRelative)
@@ -836,7 +841,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
         rotationSpeed = Math.max(-1, Math.min(1, rotationSpeed));
 
         // Drive the robot with the calculated rotation speed; ensure no other drive commands interfere
-        drive(0, 0, rotationSpeed, currentHeading, false);  // Assuming drive method takes xSpeed, ySpeed, rotationSpeed, fieldOriented
+        drive(0, 0, rotationSpeed, true);  // Assuming drive method takes xSpeed, ySpeed, rotationSpeed, fieldOriented
     }
 
     public void stop()

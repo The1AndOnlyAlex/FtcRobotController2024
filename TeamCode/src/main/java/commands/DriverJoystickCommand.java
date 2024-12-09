@@ -114,14 +114,11 @@ public class DriverJoystickCommand extends CommandBase {
         // Retrieve current heading and control mode states
         double currentHeading = currentHeadingSupplier.getAsDouble();
 
-        boolean fieldOriented = false;
         if( fieldOrientedSupplier.getAsBoolean()) {
-            fieldOriented = true;
-            m_drive.setFiledRelative(fieldOriented);
+            m_drive.setFieledRelative(true);
         }
         if( robotOrientedSupplier.getAsBoolean()) {
-            fieldOriented = false;
-            m_drive.setFiledRelative(fieldOriented);
+            m_drive.setFieledRelative(false);
         }
 
         boolean towMode = towLeftSupplier.getAsBoolean() || towRightSupplier.getAsBoolean();
@@ -130,7 +127,7 @@ public class DriverJoystickCommand extends CommandBase {
                 precisionLeftSupplier.getAsDouble(), precisionRightSupplier.getAsDouble() );
         if (precisionMode > 0.001) {
             precisionMode = Math.abs(1-precisionMode);
-            if(precisionMode < 0.4) precisionMode = 0.4;
+            if(precisionMode < 0.3) precisionMode = 0.3;
             m_drive.setMaxOutput(precisionMode);
         }
 
@@ -185,20 +182,7 @@ public class DriverJoystickCommand extends CommandBase {
             doAutoHeading = false; // Reset the flag after adjustment begins
         } else {
             // Continue with the regular driving command
-            m_drive.drive(xSpeed, ySpeed, rotationSpeed, currentHeading, fieldOriented);
+            m_drive.drive(xSpeed, ySpeed, rotationSpeed, false);
         }
     }
-
-
-//    @Override
-//    public void end(boolean interrupted) {
-//        m_drive.stop();
-//    }
-//
-//
-//    @Override
-//    public boolean isFinished() {
-//        return Math.abs(m_drive.getCurrentAngleDegree()) >= m_angle;
-//    }
-
 }
