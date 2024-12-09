@@ -182,7 +182,7 @@ public class DriverJoystickCommand extends CommandBase {
             doAutoHeading = false; // Reset the flag after adjustment begins
         } else {
             // Continue with the regular driving command
-            m_drive.drive(xSpeed, ySpeed, rotationSpeed, false);
+            m_drive.drive(xSpeed, ySpeed, rotationSpeed, false, currentHeadingSupplier.getAsDouble());
         }
     }
 }

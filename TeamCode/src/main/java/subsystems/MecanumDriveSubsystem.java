@@ -799,7 +799,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
      * @param rot Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot,
-                      boolean isRobotTurnOnly
+                      boolean isRobotTurnOnly, double curHeading
     ) {
         if(isRobotTurnOnly)
         {
@@ -807,7 +807,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
         }
         else if (fieldRelative)
         {
-            driveCartesian(xSpeed, ySpeed, rot, angleOfRobotAndField);
+            driveCartesian(xSpeed, ySpeed, rot, curHeading);
         } else
         {
             driveCartesian(xSpeed, ySpeed, rot);
@@ -841,7 +841,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
         rotationSpeed = Math.max(-1, Math.min(1, rotationSpeed));
 
         // Drive the robot with the calculated rotation speed; ensure no other drive commands interfere
-        drive(0, 0, rotationSpeed, true);  // Assuming drive method takes xSpeed, ySpeed, rotationSpeed, fieldOriented
+        drive(0, 0, rotationSpeed, true, currentHeadingPi2NPi);  // Assuming drive method takes xSpeed, ySpeed, rotationSpeed, fieldOriented
     }
 
     public void stop()
