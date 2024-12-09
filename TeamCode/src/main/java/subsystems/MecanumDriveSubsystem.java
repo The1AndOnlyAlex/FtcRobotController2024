@@ -77,7 +77,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     boolean visionLimelightPoseEnable = false;
     boolean visionWebcamPoseEnable = false;
-    private PIDController headingTurnPID = new PIDController(0.02, 0.0, 0.005);
+    private PIDController headingTurnPID = new PIDController(0.01, 0.0, 0.000001);
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -828,11 +828,11 @@ public class MecanumDriveSubsystem extends SubsystemBase
         }
     }
 
-    public void adjustToHeading(double targetAutoHeading) {
+    public void adjustToHeading(double targetAutoHeading, double currentHeading) {
         headingTurnPID.setSetpoint(targetAutoHeading);
 
         // This method should be called repeatedly, such as in a periodic or execute method in your command
-        double currentHeading = getCurrentAngleDegree();  // This method must return the current heading normalized to -180 to 180 degrees
+        //double currentHeading = getCurrentAngleDegree();  // This method must return the current heading normalized to -180 to 180 degrees
 
         // Calculate the output from the PID controller, which automatically adjusts for the shortest path due to continuous input
         double rotationSpeed = headingTurnPID.calculate(currentHeading);

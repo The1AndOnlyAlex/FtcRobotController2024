@@ -178,7 +178,7 @@ public class DriverJoystickCommand extends CommandBase {
 
         // Apply automatic heading adjustments if required
         if (doAutoHeading) {
-            m_drive.adjustToHeading(targetAutoHeading);
+            m_drive.adjustToHeading(targetAutoHeading, currentHeadingSupplier.getAsDouble());
             doAutoHeading = false; // Reset the flag after adjustment begins
         } else {
             // Continue with the regular driving command
