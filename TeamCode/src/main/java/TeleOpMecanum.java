@@ -4,16 +4,14 @@ import android.util.Size;
 
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.InstantCommand;
-import com.arcrobotics.ftclib.command.OdometrySubsystem;
 import com.arcrobotics.ftclib.command.RunCommand;
 import com.arcrobotics.ftclib.command.button.GamepadButton;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.arcrobotics.ftclib.hardware.GyroEx;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
-import com.arcrobotics.ftclib.hardware.motors.MotorEx;
-import com.arcrobotics.ftclib.kinematics.HolonomicOdometry;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -22,20 +20,21 @@ import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
+
 import Config.ApriltagsFieldData;
 import Config.DriveConstants;
-import commands.DriveCommand;
-import commands.RunMotorCommand;
-import commands.StopMotorCommand;
-import subsystems.BasicSubsystem;
+import commands.DriverJoystickCommand;
 import subsystems.IntakeSubsystem;
 import subsystems.MecanumDriveSubsystem;
-import subsystems.TankDriveSubsystem;
+import util.DashServer;
 
 @TeleOp
 public class TeleOpMecanum extends CommandOpMode {
@@ -80,10 +79,10 @@ public class TeleOpMecanum extends CommandOpMode {
         backLeft.stopAndResetEncoder();
         backRight.stopAndResetEncoder();
 
-        frontLeft.setRunMode(Motor.RunMode.VelocityControl);
-        frontRight.setRunMode(Motor.RunMode.VelocityControl);
-        backLeft.setRunMode(Motor.RunMode.VelocityControl);
-        backRight.setRunMode(Motor.RunMode.VelocityControl);
+//        frontLeft.setRunMode(Motor.RunMode.VelocityControl);
+//        frontRight.setRunMode(Motor.RunMode.VelocityControl);
+//        backLeft.setRunMode(Motor.RunMode.VelocityControl);
+//        backRight.setRunMode(Motor.RunMode.VelocityControl);
 
         frontLeft.setVeloCoefficients(1.2, 0, 0.01);
         frontRight.setVeloCoefficients(1.2, 0, 0.01);
@@ -147,6 +146,7 @@ public class TeleOpMecanum extends CommandOpMode {
 
             @Override
             public double getAbsoluteHeading() {
+
                 return 0;
             }
 
@@ -263,10 +263,12 @@ public class TeleOpMecanum extends CommandOpMode {
         //webcamStartTime = (double)System.nanoTime()/1E9;
     }
 
+    private boolean LimelightValid = false;
     private void initLimelight()
     {
         try{
             limelightApriltag = hardwareMap.get(Limelight3A.class, "limelight");
+            LimelightValid = true;
         } catch(Exception e){
             limelightApriltag = null;
             telemetry.addLine(" Lost Limelight /n");
@@ -285,7 +287,7 @@ public class TeleOpMecanum extends CommandOpMode {
         initDriveWheels();
         initGyro();
         initLimelight();
-        initWebCamAprilTag();
+        //initWebCamAprilTag();
 
         intakeSubsystem = new IntakeSubsystem(telemetry);
 
@@ -303,27 +305,70 @@ public class TeleOpMecanum extends CommandOpMode {
 
         mecanumDriveSubsystem.enableDrive();
 
-        //wpiMecanumDriveSubsystem.setDefaultCommand(
-        //new ApriltagCommand(wpiMecanumDriveSubsystem, aprilTag, telemetry));
-        // update telemetry every loop
-        //schedule(new RunCommand(telemetry::update));
-
+//        if(LimelightValid)
+//            mecanumDriveSubsystem.setVisionLimelightPoseEnable(true);
 
         GamepadEx driverOp  = new GamepadEx(gamepad1);
 
-//        TankDriveSubsystem driveSystem = new TankDriveSubsystem(
-//                new Motor(hardwareMap, "left_drive_motor"),
-//                new Motor(hardwareMap, "right_drive_motor"),
-//                gamepad
-//        );
-//
-//        IntakeSubsystem intake = new IntakeSubsystem(
-//                new Motor(hardwareMap, "left_intake_motor"),
-//                new Motor(hardwareMap, "right_intake_motor"),
-//                null//Servo mechRotation
-//        );
-//
-//
+        // Configure the button bindings
+        configureButtonBindings(driverOp);
+
+        // Configure default commands
+        // Set the default drive command to split-stick arcade drive
+        // sets the default command to the drive command so that it is always looking
+        // at the value on the joysticks
+        mecanumDriveSubsystem.setDefaultCommand(
+
+//                DoubleSupplier xSpdFunction,
+//                DoubleSupplier ySpdFunction,
+//                DoubleSupplier rotationSpdFunction,
+//                BooleanSupplier fieldOrientedFunction,
+//                BooleanSupplier robotOrientedFunction,
+//                BooleanSupplier resetCurrentHeading2Zero,
+//                BooleanSupplier towLeftSupplier,
+//                BooleanSupplier towRightSupplier,
+//                DoubleSupplier precisionLeftSupplier,
+//                DoubleSupplier precisionRightSupplier,
+//                BooleanSupplier turnToForwardSupplier,
+//                BooleanSupplier turnToBackwardSupplier,
+//                BooleanSupplier turnToLeftSupplier,
+//                BooleanSupplier turnToRightSupplier,
+//                DoubleSupplier currentHeadingPI2NPI,
+//                MecanumDriveSubsystem drive
+                new DriverJoystickCommand(
+                        () -> driverOp.getLeftY(),
+                        () -> -driverOp.getLeftX(),
+                        () -> -driverOp.getRightX(),
+
+                        () -> driverOp.getButton(GamepadKeys.Button.Y),
+                        () -> driverOp.getButton(GamepadKeys.Button.A),
+
+                        () -> driverOp.getButton(GamepadKeys.Button.X),
+
+                        () -> driverOp.getButton(GamepadKeys.Button.LEFT_BUMPER),
+                        () -> driverOp.getButton(GamepadKeys.Button.RIGHT_BUMPER),
+
+                        () -> driverOp.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER),
+                        () -> driverOp.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER),
+
+                        () -> driverOp.getButton(GamepadKeys.Button.DPAD_UP),
+                        () -> driverOp.getButton(GamepadKeys.Button.DPAD_DOWN),
+                        () -> driverOp.getButton(GamepadKeys.Button.DPAD_LEFT),
+                        () -> driverOp.getButton(GamepadKeys.Button.DPAD_RIGHT),
+
+                        mecanumDriveSubsystem::getCurrentAngleDegree,
+                        mecanumDriveSubsystem
+                ));
+
+        // update telemetry every loop
+        schedule(new RunCommand(telemetry::update));
+    }
+
+    /**
+     * Use this method to define your button->command mappings.
+     */
+    private void configureButtonBindings(GamepadEx driverOp) {
+
 //        // bindings
 //        gamepad.getGamepadButton(GamepadKeys.Button.A)
 //                .whenPressed(new RunMotorCommand(mecanumDriveSubsystem));
@@ -338,36 +383,63 @@ public class TeleOpMecanum extends CommandOpMode {
 //                .whenHeld(new InstantCommand(intake::reverse, intake))
 //                .whenReleased(new InstantCommand(intake::stop, intake));
 
-        // Configure the button bindings
-        configureButtonBindings(driverOp);
-
-        // Configure default commands
-        // Set the default drive command to split-stick arcade drive
-        // sets the default command to the drive command so that it is always looking
-        // at the value on the joysticks
-        mecanumDriveSubsystem.setDefaultCommand(
-                // A split-stick arcade command, with forward/backward controlled by the left
-                // hand, and turning controlled by the right.
-                new RunCommand(
-                        () ->
-                                mecanumDriveSubsystem.drive(
-                                        -driverOp.getLeftY(),
-                                        -driverOp.getRightX(),
-                                        -driverOp.getLeftX(),
-                                        false),
-                        mecanumDriveSubsystem));
-
-        // update telemetry every loop
-        schedule(new RunCommand(telemetry::update));
+        // Drive at half speed when the right bumper is held
+//        new GamepadButton(driverOp, GamepadKeys.Button.RIGHT_BUMPER)
+//                .whenHeld(new InstantCommand(() -> mecanumDriveSubsystem.setMaxOutput(0.3)))
+//                .whenReleased(new InstantCommand(() -> mecanumDriveSubsystem.setMaxOutput(1)));
+//
+//        driverOp.getGamepadButton(GamepadKeys.Button.A)
+//                .whenPressed(new InstantCommand(mecanumDriveSubsystem::setFiledRelative,
+//                        mecanumDriveSubsystem));
+//        driverOp.getGamepadButton(GamepadKeys.Button.B)
+//                .whenPressed(new InstantCommand(mecanumDriveSubsystem::setRobotRelative,
+//                        mecanumDriveSubsystem));
+//
+//        new GamepadButton(driverOp, GamepadKeys.Button.X)
+//                .whenPressed(new DriverJoystickCommand(90,0.5, mecanumDriveSubsystem))
+//                .whenReleased(new InstantCommand(() -> mecanumDriveSubsystem.stop()));
     }
 
-    /**
-     * Use this method to define your button->command mappings.
-     */
-    private void configureButtonBindings(GamepadEx driverOp) {
-        // Drive at half speed when the right bumper is held
-        new GamepadButton(driverOp, GamepadKeys.Button.RIGHT_BUMPER)
-                .whenHeld(new InstantCommand(() -> mecanumDriveSubsystem.setMaxOutput(0.5)))
-                .whenReleased(new InstantCommand(() -> mecanumDriveSubsystem.setMaxOutput(1)));
+    ////// DO NOT MODIFY THIS FUNCTION UNLESS YOU GET CONFIRMED!!!
+    private int FrameCounter = 0;
+    static final double MIN_TASK_RUN_PERIOD = 100;
+    @Override
+    public void runOpMode() {
+        LynxModule controlHub  = hardwareMap.get(LynxModule.class, "Control Hub");
+        DashServer.Init();
+        boolean connected = false;
+        do {
+            connected = DashServer.Connect();
+            connected |= DashServer.AddData("time", FrameCounter);
+            sleep(1);
+        } while (!connected);
+
+        initialize();
+        waitForStart();
+        double taskRunTime = 0;
+
+        while (!isStopRequested() && opModeIsActive()) {
+            //DashServer.AddData("Start", startTime);
+            //DashServer.AddData("wcStart", webcamStartTime);
+            DashServer.AddData("tskTime", taskRunTime);
+            double currentTime = (double) System.nanoTime() / 1E9;
+            DashServer.AddData("OSTime", currentTime);
+            run();
+            DashServer.AddData("time", FrameCounter++);
+            DashServer.AddData("busVoltage",
+                    controlHub .getInputVoltage(VoltageUnit.VOLTS));
+            DashServer.DashData();
+
+            taskRunTime = (double) System.nanoTime() / 1E9 - currentTime;
+            long sleepTime = (long)(MIN_TASK_RUN_PERIOD - taskRunTime*1000);
+            if(sleepTime > 0)
+                sleep(sleepTime);
+        }
+        reset();
+        if(limelightApriltag != null) limelightApriltag.stop();
+        DashServer.AddData("time", FrameCounter++);
+        DashServer.AddData("OSTime", (double) System.nanoTime() / 1E9);
+        DashServer.DashData();
+        DashServer.Close();
     }
 }

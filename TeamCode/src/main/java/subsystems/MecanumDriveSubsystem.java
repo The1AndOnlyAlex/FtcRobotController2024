@@ -17,13 +17,16 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
+import java.util.function.DoubleSupplier;
 
 import Config.ApriltagsFieldData;
 import Config.DriveConstants;
 import edu.wpi.first.math.ComputerVisionUtil;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.MecanumDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -31,13 +34,18 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions;
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import util.DashServer;
+import util.OldDriverFilter2;
 import util.RobotDataServer;
+import util.filters.DeadbandFilter;
+import util.filters.FilterSeries;
+import util.filters.ScaleFilter;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
@@ -66,10 +74,11 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     private Telemetry telemetry;
 
-    private boolean telemetryEnable = false;
+    private boolean telemetryEnable = true;
 
     boolean visionLimelightPoseEnable = false;
     boolean visionWebcamPoseEnable = false;
+    private PIDController headingTurnPID = new PIDController(0.009, 0.0, 0.000001);
 
     public MecanumDriveSubsystem(
             Motor frontLeft,
@@ -121,11 +130,29 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
         this.telemetry = telemetry;
         //this.dataServer = dataServer;
+
+
+        headingTurnPID.enableContinuousInput(-180, 180);
+        headingTurnPID.setTolerance(0.5);
     }
+
+//    com.arcrobotics.ftclib.geometry.Rotation2d previousHeading = new com.arcrobotics.ftclib.geometry.Rotation2d();
+//    com.arcrobotics.ftclib.geometry.Rotation2d currentHeading = new com.arcrobotics.ftclib.geometry.Rotation2d();
+
+    double currentHeadingPi2NPi = 0;
 
     @Override
     public void periodic()
     {
+//        previousHeading = currentHeading;
+//        currentHeading = gyroEx.getRotation2d();
+//
+//        double cos_angle = previousHeading.getCos();
+//                double sin_angle = previousHeading.getSin();
+//        com.arcrobotics.ftclib.geometry.Rotation2d a =
+//                new com.arcrobotics.ftclib.geometry.Rotation2d(cos_angle, -sin_angle);
+//        currentHeadingPi2NPi = a.rotateBy(currentHeading).getDegrees();
+
 //        isSteopped = true;
         if(isSteopped)
         {
@@ -151,6 +178,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
             currentEstimatedPose = mecanumPoseEstimator.updateWithTime(
                     (double) System.nanoTime() / 1E9,
                     getGyroRotation2d(), mecanumDriveWheelPositions);
+
+            currentHeadingPi2NPi = currentEstimatedPose.getRotation().getDegrees();
 
         }
         DashServer.AddData("dsEtmTime", (double) System.nanoTime() / 1E9);//(double)System.currentTimeMillis()/1000.0);//
@@ -190,6 +219,9 @@ public class MecanumDriveSubsystem extends SubsystemBase
             telemetry.addData("Asked Wheels Speed: ", askedWheelSpeeds);
             telemetry.addLine();
             telemetry.addData("Measured Wheels Speed: ", currentWheelSpeeds);
+            telemetry.addLine();
+            telemetry.addData("Limited Heading: ", currentHeadingPi2NPi);
+            telemetry.addData("FieldOriented: ", fieldRelative);
             telemetry.update();
         }
     }
@@ -520,6 +552,11 @@ public class MecanumDriveSubsystem extends SubsystemBase
 //        backRight.set( mecanumDriveMotorVoltages.rearRightVoltage);
 //    }
 
+    public void setVisionLimelightPoseEnable(boolean en)
+    {
+        visionLimelightPoseEnable = en;
+    }
+
 
     /**********************************************************************
      * The code below are used for TeleOp Mode
@@ -573,7 +610,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
      *     positive.
      */
     public void driveCartesian(double xSpeed, double ySpeed, double zRotation) {
-        driveCartesian(xSpeed, ySpeed, zRotation, new Rotation2d());
+        driveCartesian(xSpeed, ySpeed, zRotation, 0);//new Rotation2d());
     }
 
     private final DoubleConsumer m_frontLeftMotor;
@@ -601,7 +638,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
      *     controls.
      */
     public void driveCartesian(double xSpeed, double ySpeed,
-                               double zRotation, Rotation2d gyroAngle) {
+                               double zRotation, double gyroAngle) {
 
         xSpeed = MathUtil.applyDeadband(xSpeed, m_deadband);
         ySpeed = MathUtil.applyDeadband(ySpeed, m_deadband);
@@ -617,6 +654,11 @@ public class MecanumDriveSubsystem extends SubsystemBase
         m_frontRightMotor.accept(m_frontRightOutput);
         m_rearLeftMotor.accept(m_rearLeftOutput);
         m_rearRightMotor.accept(m_rearRightOutput);
+
+        DashServer.AddData("tlpFlPower", m_frontLeftOutput);
+        DashServer.AddData("tlpRlPower", m_rearLeftOutput);
+        DashServer.AddData("tlpFrPower", m_frontRightOutput);
+        DashServer.AddData("tlpRrPower", m_rearRightOutput);
     }
 
     /**
@@ -633,7 +675,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
     public void drivePolar(double magnitude, Rotation2d angle, double zRotation) {
         driveCartesian(
                 magnitude * angle.getCos(), magnitude * angle.getSin(),
-                zRotation, new Rotation2d());
+                zRotation, 0);//new Rotation2d());
     }
 
     /**
@@ -648,8 +690,8 @@ public class MecanumDriveSubsystem extends SubsystemBase
      *     positive.
      * @return Wheel speeds [-1.0..1.0].
      */
-    public static MecanumDriveWheelSpeeds driveCartesianIK(double xSpeed, double ySpeed, double zRotation) {
-        return driveCartesianIK(xSpeed, ySpeed, zRotation, new Rotation2d());
+    public MecanumDriveWheelSpeeds driveCartesianIK(double xSpeed, double ySpeed, double zRotation) {
+        return driveCartesianIK(xSpeed, ySpeed, zRotation, 0);//new Rotation2d());
     }
 
     /**
@@ -666,27 +708,42 @@ public class MecanumDriveSubsystem extends SubsystemBase
      *     controls.
      * @return Wheel speeds [-1.0..1.0].
      */
-    public static MecanumDriveWheelSpeeds driveCartesianIK(
-            double xSpeed, double ySpeed, double zRotation, Rotation2d gyroAngle) {
-        xSpeed = MathUtil.clamp(xSpeed, -1.0, 1.0);
-        ySpeed = MathUtil.clamp(ySpeed, -1.0, 1.0);
+    public MecanumDriveWheelSpeeds driveCartesianIK(
+            double xSpeed, double ySpeed, double zRotation, double gyroAngle) {
 
-        // Compensate for gyro angle.
-        Translation2d input = new Translation2d(xSpeed, ySpeed).rotateBy(gyroAngle.unaryMinus());
+        if( true ) {
+            if (fieldRelative) {
+                // Adjust for field orientation
+                double radHeading = Math.toRadians(gyroAngle);
+                double temp = xSpeed * Math.cos(radHeading) + ySpeed * Math.sin(radHeading);
+                ySpeed = -xSpeed * Math.sin(radHeading) + ySpeed * Math.cos(radHeading);
+                xSpeed = temp;
+            }
 
-        double[] wheelSpeeds = new double[4];
-        wheelSpeeds[MotorType.kFrontLeft.value] = input.getX() + input.getY() + zRotation;
-        wheelSpeeds[MotorType.kFrontRight.value] = input.getX() - input.getY() - zRotation;
-        wheelSpeeds[MotorType.kRearLeft.value] = input.getX() - input.getY() + zRotation;
-        wheelSpeeds[MotorType.kRearRight.value] = input.getX() + input.getY() - zRotation;
+            // Calculate wheel speeds based on the desired x, y, and rotation velocities
+            return this.mecanumDriveKinematics.toWheelSpeeds(new ChassisSpeeds(xSpeed, ySpeed, zRotation));
+        }
+        else {
+            xSpeed = MathUtil.clamp(xSpeed, -1.0, 1.0);
+            ySpeed = MathUtil.clamp(ySpeed, -1.0, 1.0);
 
-        normalize(wheelSpeeds);
+            // Compensate for gyro angle.
+            Translation2d input = new Translation2d(xSpeed, ySpeed).rotateBy(new Rotation2d(gyroAngle).unaryMinus());
 
-        return new MecanumDriveWheelSpeeds(
-                wheelSpeeds[MotorType.kFrontLeft.value],
-                wheelSpeeds[MotorType.kFrontRight.value],
-                wheelSpeeds[MotorType.kRearLeft.value],
-                wheelSpeeds[MotorType.kRearRight.value]);
+            double[] wheelSpeeds = new double[4];
+            wheelSpeeds[MotorType.kFrontLeft.value] = input.getX() + input.getY() + zRotation;
+            wheelSpeeds[MotorType.kFrontRight.value] = input.getX() - input.getY() - zRotation;
+            wheelSpeeds[MotorType.kRearLeft.value] = input.getX() - input.getY() + zRotation;
+            wheelSpeeds[MotorType.kRearRight.value] = input.getX() + input.getY() - zRotation;
+
+            normalize(wheelSpeeds);
+
+            return new MecanumDriveWheelSpeeds(
+                    wheelSpeeds[MotorType.kFrontLeft.value],
+                    wheelSpeeds[MotorType.kFrontRight.value],
+                    wheelSpeeds[MotorType.kRearLeft.value],
+                    wheelSpeeds[MotorType.kRearRight.value]);
+        }
     }
 
     /**
@@ -762,14 +819,85 @@ public class MecanumDriveSubsystem extends SubsystemBase
      * @param xSpeed Speed of the robot in the x direction (forward/backwards).
      * @param ySpeed Speed of the robot in the y direction (sideways).
      * @param rot Angular rate of the robot.
-     * @param fieldRelative Whether the provided x and y speeds are relative to the field.
      */
-    public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
-        if (fieldRelative) {
-            driveCartesian(xSpeed, ySpeed, rot, getGyroRotation2d());
-        } else {
+    public void drive(double xSpeed, double ySpeed, double rot,
+                      boolean isRobotTurnOnly, double curHeading
+    ) {
+        if(isRobotTurnOnly)
+        {
+            driveCartesian(0, 0, rot);
+        }
+        else if (fieldRelative)
+        {
+            driveCartesian(xSpeed, ySpeed, rot, curHeading);
+        } else
+        {
             driveCartesian(xSpeed, ySpeed, rot);
         }
     }
+    private boolean fieldRelative = false;
+    private double angleOfRobotAndField = 0;
+    public void setFieledRelative(boolean isFieldRela )
+    {
+        fieldRelative = isFieldRela;
+        if(fieldRelative)
+        {
+            angleOfRobotAndField = getCurrentAngleDegree();
+        }
+        else
+        {
+            angleOfRobotAndField = 0;
+        }
+    }
 
+    public void adjustToHeading(double targetAutoHeading, double currentHeading) {
+        headingTurnPID.setSetpoint(targetAutoHeading);
+
+        // This method should be called repeatedly, such as in a periodic or execute method in your command
+        //double currentHeading = getCurrentAngleDegree();  // This method must return the current heading normalized to -180 to 180 degrees
+
+        // Calculate the output from the PID controller, which automatically adjusts for the shortest path due to continuous input
+        double rotationSpeed = headingTurnPID.calculate(currentHeading);
+        DashServer.AddData("turnClcuSpeedRaw", rotationSpeed);
+
+        // Optionally, you can limit the rotation speed here if needed
+        rotationSpeed = Math.max(-1, Math.min(1, rotationSpeed));
+
+        DashServer.AddData("turnTgtHding", targetAutoHeading);
+        DashServer.AddData("turnCurHding", currentHeading);
+        DashServer.AddData("turnClcuSpeed", rotationSpeed);
+
+        // Drive the robot with the calculated rotation speed; ensure no other drive commands interfere
+        drive(0, 0, rotationSpeed, true, currentHeading);  // Assuming drive method takes xSpeed, ySpeed, rotationSpeed, fieldOriented
+    }
+
+    public void stop()
+    {
+        frontLeft.set( 0);
+        frontRight.set( 0);
+        backLeft.set( 0);
+        backRight.set( 0);
+        frontLeft.motor.setPower(0);
+        frontRight.motor.setPower(0);
+        backLeft.motor.setPower(0);
+        backRight.motor.setPower(0);
+    }
+
+    public double getCurrentAngleDegree()
+    {
+        return currentHeadingPi2NPi;//getGyroRotation2d().getDegrees(); gyroEx.getHeading().getDegrees()
+    }
+
+    public boolean getIsFieldRelative()
+    {
+        return fieldRelative;
+    }
+
+    public void resetHeading2Zero()
+    {
+        // so robot heading matchs the field forward direction, which is 0
+        angleOfRobotAndField = 0;
+        gyroEx.reset();
+        currentHeadingPi2NPi = 0;
+    }
 }
