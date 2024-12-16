@@ -78,7 +78,7 @@ public class MecanumDriveSubsystem extends SubsystemBase
 
     boolean visionLimelightPoseEnable = false;
     boolean visionWebcamPoseEnable = false;
-    private PIDController headingTurnPID = new PIDController(0.009, 0.0, 0.000001);
+    private PIDController headingTurnPID = new PIDController(0.01, 0.0, 0.000001);
 
     public MecanumDriveSubsystem(
             Motor frontLeft,

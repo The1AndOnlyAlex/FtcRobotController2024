@@ -32,6 +32,11 @@ import java.util.function.DoubleSupplier;
 import Config.ApriltagsFieldData;
 import Config.DriveConstants;
 import commands.DriverJoystickCommand;
+import commands.MecanumControllerCommand;
+import commands.MecanumDynamicControllerCommand;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import subsystems.IntakeSubsystem;
 import subsystems.MecanumDriveSubsystem;
 import util.DashServer;
@@ -340,8 +345,8 @@ public class TeleOpMecanum extends CommandOpMode {
                         () -> -driverOp.getLeftX(),
                         () -> -driverOp.getRightX(),
 
-                        () -> driverOp.getButton(GamepadKeys.Button.Y),
-                        () -> driverOp.getButton(GamepadKeys.Button.A),
+                        () -> driverOp.getButton(GamepadKeys.Button.BACK),
+                        () -> driverOp.getButton(GamepadKeys.Button.START),
 
                         () -> driverOp.getButton(GamepadKeys.Button.X),
 
@@ -364,14 +369,58 @@ public class TeleOpMecanum extends CommandOpMode {
         schedule(new RunCommand(telemetry::update));
     }
 
+    TrajectoryConfig trajectoryConfig = new TrajectoryConfig(
+    DriveConstants.TRAJECTORY_MAX_VELOCITY,
+    DriveConstants.MAX_ACCELERATION,
+            false)
+            .setKinematics(DriveConstants.kinematicsWPI);
+
+    TrajectoryConfig trajectoryConfigReverse = new TrajectoryConfig(
+            DriveConstants.TRAJECTORY_MAX_VELOCITY,
+            DriveConstants.MAX_ACCELERATION,
+            true)
+            .setKinematics(DriveConstants.kinematicsWPI);
+
     /**
      * Use this method to define your button->command mappings.
      */
     private void configureButtonBindings(GamepadEx driverOp) {
 
 //        // bindings
-//        gamepad.getGamepadButton(GamepadKeys.Button.A)
-//                .whenPressed(new RunMotorCommand(mecanumDriveSubsystem));
+        driverOp.getGamepadButton(GamepadKeys.Button.B)
+                .whenPressed(new MecanumDynamicControllerCommand(
+                        mecanumDriveSubsystem::getCurrentEstimatedPose,
+                        new Pose2d(1,1, new Rotation2d()),
+                        trajectoryConfig,
+                        mecanumDriveSubsystem::getCurrentEstimatedPose,
+                        mecanumDriveSubsystem.getKinematics(),
+                        new edu.wpi.first.math.controller.PIDController(0.3,0,0.001),
+                        new edu.wpi.first.math.controller.PIDController(0.2,0,0.001),
+                        new edu.wpi.first.math.controller.ProfiledPIDController(
+                                0.1,0,0.005,
+                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(
+                                        0.5,0.5)),
+                        ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
+                        mecanumDriveSubsystem::driveBySpeedEvent,
+                        mecanumDriveSubsystem).whenFinished(mecanumDriveSubsystem::stop));
+
+        driverOp.getGamepadButton(GamepadKeys.Button.A)
+                .whenPressed(new MecanumDynamicControllerCommand(
+                        mecanumDriveSubsystem::getCurrentEstimatedPose,
+                        new Pose2d(0,0, new Rotation2d()),
+                        trajectoryConfigReverse,
+                        mecanumDriveSubsystem::getCurrentEstimatedPose,
+                        mecanumDriveSubsystem.getKinematics(),
+                        new edu.wpi.first.math.controller.PIDController(0.3,0,0.001),
+                        new edu.wpi.first.math.controller.PIDController(0.2,0,0.001),
+                        new edu.wpi.first.math.controller.ProfiledPIDController(
+                                0.1,0,0.005,
+                                new edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints(
+                                        0.5,0.5)),
+                        ACHIEVABLE_MAX_DISTANCE_PER_SECOND,
+                        mecanumDriveSubsystem::driveBySpeedEvent,
+                        mecanumDriveSubsystem).whenFinished(mecanumDriveSubsystem::stop));
+
 //        gamepad.getGamepadButton(GamepadKeys.Button.B)
 //                .whenPressed(new StopMotorCommand(mecanumDriveSubsystem));
 //
